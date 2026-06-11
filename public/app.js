@@ -18,6 +18,7 @@ let firestoreDb = null;
 let firestoreEnabled = false;
 const registrationSubscribers = new Set();
 let selectedTickets = {};
+let selectedScheduleDate = "";
 
 const I18N = {
   en: {
@@ -798,14 +799,47 @@ function renderSiteContent() {
 
 function renderEvents() {
   const grid = document.querySelector("#eventsGrid");
+  const filters = document.querySelector("#gameDateFilters");
   if (!grid) return;
   const events = activeEvents();
+  const dates = [...new Set(events.map((event) => event.date).filter(Boolean))];
   if (!events.length) {
+    if (filters) filters.innerHTML = "";
     grid.innerHTML = `<p class="ticket-empty">Events will appear here soon.</p>`;
     return;
   }
 
-  grid.innerHTML = events
+  if (!selectedScheduleDate || !dates.includes(selectedScheduleDate)) {
+    selectedScheduleDate = dates[0] || "";
+  }
+
+  if (filters) {
+    filters.innerHTML = dates
+      .map(
+        (date) => `
+          <button type="button" data-game-date="${date}"${date === selectedScheduleDate ? " aria-pressed=\"true\"" : ""}>
+            <span>${formatScheduleDate(date)}</span>
+            <strong>${events.filter((event) => event.date === date).length} games</strong>
+          </button>
+        `
+      )
+      .join("");
+    filters.querySelectorAll("[data-game-date]").forEach((button) => {
+      button.addEventListener("click", () => {
+        selectedScheduleDate = button.dataset.gameDate;
+        const dateInput = document.querySelector("#eventDate");
+        if (dateInput) dateInput.value = selectedScheduleDate;
+        populateEventControls();
+        renderTicketPicker();
+        updateTotal();
+        renderEvents();
+      });
+    });
+  }
+
+  const visibleEvents = selectedScheduleDate ? events.filter((event) => event.date === selectedScheduleDate) : events;
+
+  grid.innerHTML = visibleEvents
     .map(
       (event) => `
         <article class="event-card">
@@ -838,6 +872,16 @@ function renderEvents() {
   grid.querySelectorAll("[data-event-buy]").forEach((button) => {
     button.addEventListener("click", () => selectEventForRegistration(button.dataset.eventBuy));
   });
+}
+
+function formatScheduleDate(value) {
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(date);
 }
 
 function selectEventForRegistration(eventId) {

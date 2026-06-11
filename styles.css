@@ -508,7 +508,54 @@ h3 {
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-  margin-top: 2rem;
+  margin-top: 1rem;
+}
+
+.game-date-filters {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+  scroll-snap-type: x proximity;
+}
+
+.game-date-filters button {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--maroon-900);
+  cursor: pointer;
+  display: grid;
+  flex: 0 0 auto;
+  gap: 0.15rem;
+  min-height: 56px;
+  min-width: 122px;
+  padding: 0.65rem 0.85rem;
+  scroll-snap-align: start;
+  text-align: left;
+}
+
+.game-date-filters button[aria-pressed="true"] {
+  background: var(--maroon-800);
+  border-color: var(--maroon-800);
+  color: #fff;
+}
+
+.game-date-filters span,
+.game-date-filters strong {
+  display: block;
+  line-height: 1.1;
+}
+
+.game-date-filters span {
+  font-weight: 800;
+}
+
+.game-date-filters strong {
+  color: inherit;
+  font-size: 0.82rem;
+  opacity: 0.78;
 }
 
 .event-card {
