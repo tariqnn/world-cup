@@ -305,6 +305,21 @@
           <button class="button button--danger" id="closeScanner" type="button">Close</button>
         </div>
         <div id="qrReader"></div>
+        <form class="manual-scan-form" id="manualScanForm">
+          <label for="manualScanCode">
+            Manual entry
+            <input
+              id="manualScanCode"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              autocapitalize="characters"
+              placeholder="Confirmation or pass code"
+            />
+          </label>
+          <button class="button button--primary" id="manualScanSubmit" type="submit">Check in manually</button>
+          <small>Use this if the QR will not scan. Confirmation, pass code, or QR text all work.</small>
+        </form>
         <div class="scan-result" id="scanResult"></div>
       </div>
     </div>

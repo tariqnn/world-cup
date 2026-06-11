@@ -420,6 +420,15 @@ function buildPassPlans(registration) {
         passId: `${registration.id}_${safeCategory}_${String(ticketNumber).padStart(3, "0")}`,
         categoryId,
         categoryName: ticket.categoryName || registration.categoryName,
+        eventId: ticket.eventId || registration.eventId || "",
+        eventDate: ticket.eventDate || registration.eventDate || "",
+        eventTime: ticket.eventTime || registration.eventTime || "",
+        eventTitle: ticket.eventTitle || registration.eventTitle || "",
+        game: ticket.game || registration.game || "",
+        teamA: ticket.teamA || registration.teamA || "",
+        teamB: ticket.teamB || registration.teamB || "",
+        flagA: ticket.flagA || registration.flagA || "",
+        flagB: ticket.flagB || registration.flagB || "",
         ticketNumber,
         ticketTotal,
       });
@@ -462,15 +471,15 @@ async function ensureQrPasses(registration) {
         phone: registration.phone,
         categoryId: plan.categoryId,
         categoryName: plan.categoryName,
-        eventId: registration.eventId || "",
-        eventDate: registration.eventDate || "",
-        eventTime: registration.eventTime || "",
-        eventTitle: registration.eventTitle || "",
-        game: registration.game || "",
-        teamA: registration.teamA || "",
-        teamB: registration.teamB || "",
-        flagA: registration.flagA || "",
-        flagB: registration.flagB || "",
+        eventId: plan.eventId || "",
+        eventDate: plan.eventDate || "",
+        eventTime: plan.eventTime || "",
+        eventTitle: plan.eventTitle || "",
+        game: plan.game || "",
+        teamA: plan.teamA || "",
+        teamB: plan.teamB || "",
+        flagA: plan.flagA || "",
+        flagB: plan.flagB || "",
         ticketNumber: plan.ticketNumber,
         ticketTotal: plan.ticketTotal,
         status: "active",
@@ -819,11 +828,12 @@ async function buildTicketPdf(registration, passes) {
     pdf.text("AT BIKERS VILLAGE", x + leftW / 2, y + 276, { align: "center" });
 
     const detailX = x + leftW + 18;
+    const passGame = pass.game || pass.eventTitle || registration.game || registration.eventTitle || "-";
     const detailRows = [
       ["TICKET NO.", registration.confirmation],
-      ["DATE", registration.eventDate || "-"],
-      ["TIME", registration.eventTime || getSiteContent().eventTime.replace(/^Time:\s*/i, "")],
-      ["GAME", registration.game || registration.eventTitle || "-"],
+      ["DATE", pass.eventDate || registration.eventDate || "-"],
+      ["TIME", pass.eventTime || registration.eventTime || getSiteContent().eventTime.replace(/^Time:\s*/i, "")],
+      ["GAME", passGame],
       ["ENTRY DETAILS", pass.categoryName || "General admission"],
     ];
     let detailY = y + 42;
@@ -836,7 +846,7 @@ async function buildTicketPdf(registration, passes) {
       pdf.setFillColor(90, 9, 36);
       pdf.rect(detailX, detailY + 24, detailW - 36, 38, "F");
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(value.length > 18 ? 12 : 15);
+      pdf.setFontSize(String(value || "").length > 18 ? 12 : 15);
       pdf.text(String(value || "-"), detailX + (detailW - 36) / 2, detailY + 48, {
         align: "center",
         maxWidth: detailW - 48,
@@ -856,7 +866,8 @@ async function buildTicketPdf(registration, passes) {
     pdf.text(`Ticket ${pass.ticketNumber} of ${pass.ticketTotal}`, qrX + (qrW - 56) / 2, y + h - 76, { align: "center" });
     pdf.setTextColor(255, 247, 232);
     pdf.setFontSize(9);
-    pdf.text("Valid for one scan only", qrX + (qrW - 56) / 2, y + h - 54, { align: "center" });
+    pdf.text(passGame, qrX + (qrW - 56) / 2, y + h - 58, { align: "center", maxWidth: qrW - 70 });
+    pdf.text("Valid for one scan only", qrX + (qrW - 56) / 2, y + h - 42, { align: "center" });
   }
 
   return pdf;
@@ -921,6 +932,7 @@ async function checkInQrPayload(rawPayload, expectedRegistrationId = "") {
           registrationId: pass.registrationId,
           fullName: pass.fullName,
           categoryName: pass.categoryName,
+          game: pass.game || pass.eventTitle || "",
           rawPayload,
         };
       }
@@ -940,6 +952,7 @@ async function checkInQrPayload(rawPayload, expectedRegistrationId = "") {
           registrationId: pass.registrationId,
           fullName: pass.fullName,
           categoryName: pass.categoryName,
+          game: pass.game || pass.eventTitle || "",
           previousScannedAt: scannedAt.toISOString ? scannedAt.toISOString() : String(scannedAt),
           rawPayload,
         };
@@ -967,6 +980,7 @@ async function checkInQrPayload(rawPayload, expectedRegistrationId = "") {
         registrationId: pass.registrationId,
         fullName: pass.fullName,
         categoryName: pass.categoryName,
+        game: pass.game || pass.eventTitle || "",
         rawPayload,
       };
     });
@@ -974,6 +988,100 @@ async function checkInQrPayload(rawPayload, expectedRegistrationId = "") {
     return result;
   } catch (error) {
     const result = { result: "error", message: error.message || String(error), passId, rawPayload };
+    await recordScan(result, expectedRegistrationId);
+    return result;
+  }
+}
+
+function scanResultText(result) {
+  return `${result.message}${result.fullName ? ` ${result.fullName}` : ""}${
+    result.categoryName ? ` - ${result.categoryName}` : ""
+  }${result.game ? ` - ${result.game}` : ""}`;
+}
+
+function renderScanResult(result) {
+  const scanResult = document.querySelector("#scanResult");
+  if (!scanResult) return;
+  scanResult.className = `scan-result scan-result--${result.result || "error"}`;
+  scanResult.textContent = scanResultText(result);
+}
+
+function normalizeManualScanCode(value) {
+  return String(value || "").trim();
+}
+
+async function registrationByManualCode(code) {
+  const candidates = [...new Set([code, code.toUpperCase()])].filter(Boolean);
+  for (const candidate of candidates) {
+    for (const field of ["confirmation", "passCode"]) {
+      const snapshot = await firestoreDb.collection(FIREBASE_COLLECTION).where(field, "==", candidate).limit(1).get();
+      if (!snapshot.empty) return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+    }
+  }
+  return null;
+}
+
+async function passesByManualCode(code) {
+  const candidates = [...new Set([code, code.toUpperCase()])].filter(Boolean);
+  const passes = [];
+  for (const candidate of candidates) {
+    if (!candidate.includes("/")) {
+      const directDoc = await firestoreDb.collection(QR_COLLECTION).doc(candidate).get();
+      if (directDoc.exists) passes.push({ id: directDoc.id, ...directDoc.data() });
+    }
+    for (const field of ["confirmation", "passCode"]) {
+      const snapshot = await firestoreDb.collection(QR_COLLECTION).where(field, "==", candidate).get();
+      snapshot.docs.forEach((doc) => passes.push({ id: doc.id, ...doc.data() }));
+    }
+  }
+  const unique = new Map();
+  passes.forEach((pass) => unique.set(pass.id, pass));
+  return [...unique.values()].sort((a, b) => Number(a.ticketNumber || 0) - Number(b.ticketNumber || 0));
+}
+
+function firstManualPass(passes) {
+  return passes.find((pass) => !pass.scannedAt) || passes[0] || null;
+}
+
+async function checkInManualCode(rawCode, expectedRegistrationId = "") {
+  const code = normalizeManualScanCode(rawCode);
+  const passIdFromPayload = extractPassIdFromQr(code);
+  if (passIdFromPayload) return checkInQrPayload(buildQrPayload(passIdFromPayload), expectedRegistrationId);
+  if (!code) return { result: "invalid", message: "Enter a confirmation or pass code." };
+
+  try {
+    let passes = await passesByManualCode(code);
+    if (!passes.length) {
+      const registration = await registrationByManualCode(code);
+      if (!registration) {
+        const result = { result: "invalid", message: "No ticket found for this code.", rawPayload: code };
+        await recordScan(result, expectedRegistrationId);
+        return result;
+      }
+      if (expectedRegistrationId && registration.id !== expectedRegistrationId) {
+        const result = {
+          result: "invalid",
+          message: "This code belongs to another registered person.",
+          registrationId: registration.id,
+          fullName: registration.fullName,
+          rawPayload: code,
+        };
+        await recordScan(result, expectedRegistrationId);
+        return result;
+      }
+      passes = await ensureQrPasses(registration);
+    }
+
+    const pass = firstManualPass(passes);
+    if (!pass) {
+      const result = { result: "invalid", message: "No ticket pass is available for this code.", rawPayload: code };
+      await recordScan(result, expectedRegistrationId);
+      return result;
+    }
+    const result = await checkInQrPayload(buildQrPayload(pass.id), expectedRegistrationId);
+    return { ...result, rawPayload: code, game: result.game || pass.game || pass.eventTitle || "" };
+  } catch (error) {
+    const result = { result: "error", message: error.message || String(error), rawPayload: code };
     await recordScan(result, expectedRegistrationId);
     return result;
   }
@@ -1079,15 +1187,17 @@ async function openScanner(expectedRegistrationId = "", expectedName = "") {
   const scanResult = document.querySelector("#scanResult");
   scanResult.className = "scan-result";
   scanResult.textContent = "Camera is starting...";
+  const manualInput = document.querySelector("#manualScanCode");
+  if (manualInput) {
+    manualInput.value = "";
+    manualInput.placeholder = expectedName ? "Confirmation/pass code for this guest" : "Confirmation or pass code";
+  }
 
   const onScanSuccess = async (decodedText) => {
     if (scannerBusy) return;
     scannerBusy = true;
     const result = await checkInQrPayload(decodedText, scannerExpectedRegistrationId);
-    scanResult.className = `scan-result scan-result--${result.result}`;
-    scanResult.textContent = `${result.message}${result.fullName ? ` ${result.fullName}` : ""}${
-      result.categoryName ? ` - ${result.categoryName}` : ""
-    }`;
+    renderScanResult(result);
     window.setTimeout(() => {
       scannerBusy = false;
     }, 1400);
@@ -1101,6 +1211,26 @@ async function openScanner(expectedRegistrationId = "", expectedName = "") {
     scanResult.textContent = error.message || "Could not start the camera.";
   } finally {
     scannerStarting = false;
+  }
+}
+
+async function handleManualScanSubmit(event) {
+  event.preventDefault();
+  if (!firestoreEnabled || !firestoreDb || scannerBusy) return;
+  const input = document.querySelector("#manualScanCode");
+  const button = document.querySelector("#manualScanSubmit");
+  const code = input?.value || "";
+  const releaseButton = setActionBusy(button, "Checking...");
+  scannerBusy = true;
+  try {
+    const result = await checkInManualCode(code, scannerExpectedRegistrationId);
+    renderScanResult(result);
+    if (result.result === "success") input.value = "";
+  } finally {
+    releaseButton();
+    window.setTimeout(() => {
+      scannerBusy = false;
+    }, 700);
   }
 }
 
@@ -1621,6 +1751,7 @@ function initAdminPage() {
   document.querySelector("#exportCsv").addEventListener("click", exportCsv);
   document.querySelector("#clearAll").addEventListener("click", clearAllRegistrations);
   document.querySelector("#scanAnyQr").addEventListener("click", () => openScanner());
+  document.querySelector("#manualScanForm").addEventListener("submit", handleManualScanSubmit);
   document.querySelector("#closeScanner").addEventListener("click", closeScanner);
   document.querySelector("#closePdfModal").addEventListener("click", closePdfModal);
   document.querySelector("#sharePdfFile").addEventListener("click", shareCurrentPdf);
