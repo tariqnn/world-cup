@@ -16,6 +16,40 @@ let scannerStarting = false;
 let currentPdf = null;
 let adminEventsCache = [];
 
+const COUNTRY_OPTIONS = [
+  ["AR", "Argentina"],
+  ["AU", "Australia"],
+  ["BE", "Belgium"],
+  ["BR", "Brazil"],
+  ["CA", "Canada"],
+  ["CN", "China"],
+  ["CR", "Costa Rica"],
+  ["DE", "Germany"],
+  ["DK", "Denmark"],
+  ["EG", "Egypt"],
+  ["ES", "Spain"],
+  ["FR", "France"],
+  ["GB", "United Kingdom"],
+  ["GH", "Ghana"],
+  ["IR", "Iran"],
+  ["IT", "Italy"],
+  ["JO", "Jordan"],
+  ["JP", "Japan"],
+  ["KR", "South Korea"],
+  ["MA", "Morocco"],
+  ["MX", "Mexico"],
+  ["NL", "Netherlands"],
+  ["PL", "Poland"],
+  ["PT", "Portugal"],
+  ["QA", "Qatar"],
+  ["SA", "Saudi Arabia"],
+  ["SN", "Senegal"],
+  ["TN", "Tunisia"],
+  ["TR", "Turkey"],
+  ["US", "United States"],
+  ["UY", "Uruguay"],
+];
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -447,6 +481,82 @@ function messagePdfGuest() {
     )}`,
     "_blank"
   );
+}
+
+function formatDateDisplay(value) {
+  if (!value) return getSiteContent().eventDate || "";
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return `Date: ${new Intl.DateTimeFormat("en", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(date)}`;
+}
+
+function dateInputValue(value) {
+  const raw = String(value || "");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(raw.replace(/^Date:\s*/i, ""));
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
+}
+
+function formatTimeDisplay(value) {
+  if (!value) return getSiteContent().eventTime || "";
+  const [hours, minutes] = String(value).split(":").map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return value;
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return `Time: ${new Intl.DateTimeFormat("en", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date)}`;
+}
+
+function timeInputValue(value) {
+  const raw = String(value || "").trim();
+  if (/^\d{2}:\d{2}$/.test(raw)) return raw;
+  const clean = raw.replace(/^Time:\s*/i, "");
+  const match = clean.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
+  if (!match) return "";
+  let hours = Number(match[1]);
+  const minutes = Number(match[2] || 0);
+  const period = match[3].toUpperCase();
+  if (period === "PM" && hours < 12) hours += 12;
+  if (period === "AM" && hours === 12) hours = 0;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function plainLocation(value) {
+  return String(value || "").replace(/^Location:\s*/i, "").trim();
+}
+
+function formatLocationDisplay(value) {
+  const location = plainLocation(value) || DEFAULT_SITE_CONTENT.mapLocation;
+  return `Location: ${location}`;
+}
+
+function countryLabelFromCode(code) {
+  const normalized = String(code || "").trim().toUpperCase();
+  const match = COUNTRY_OPTIONS.find(([countryCode]) => countryCode === normalized);
+  return match ? `${match[1]} (${match[0]})` : normalized;
+}
+
+function parseCountryCode(value) {
+  const normalized = String(value || "").trim();
+  const parenthesized = normalized.match(/\(([A-Za-z]{2})\)$/);
+  if (parenthesized) return parenthesized[1].toUpperCase();
+  const byCode = COUNTRY_OPTIONS.find(([code]) => code.toLowerCase() === normalized.toLowerCase());
+  if (byCode) return byCode[0];
+  const byName = COUNTRY_OPTIONS.find(([, name]) => name.toLowerCase() === normalized.toLowerCase());
+  if (byName) return byName[0];
+  return /^[A-Za-z]{2}$/.test(normalized) ? normalized.toUpperCase() : "";
+}
+
+function initCountryOptions() {
+  const list = document.querySelector("#countryOptions");
+  if (!list) return;
+  list.innerHTML = COUNTRY_OPTIONS.map(([code, name]) => `<option value="${escapeHtml(`${name} (${code})`)}"></option>`).join("");
 }
 
 async function loadImageDataUrl(src) {
@@ -893,24 +1003,64 @@ function fillContentEditor() {
   const content = getSiteContent();
   document.querySelectorAll("[data-content-field]").forEach((field) => {
     const key = field.dataset.contentField;
-    field.value = content[key] ?? "";
+    if (key === "eventDateValue") {
+      field.value = content.eventDateValue || dateInputValue(content.eventDate);
+    } else if (key === "eventTimeValue") {
+      field.value = content.eventTimeValue || timeInputValue(content.eventTime);
+    } else if (key === "mapLocation") {
+      field.value = content.mapLocation || plainLocation(content.eventLocation);
+    } else {
+      field.value = content[key] ?? "";
+    }
   });
 }
 
 async function saveContentSettings() {
-  const content = {};
+  const content = { ...getSiteContent() };
   document.querySelectorAll("[data-content-field]").forEach((field) => {
     const key = field.dataset.contentField;
-    content[key] = key === "ticketPrice" ? Number(field.value || 0) : field.value.trim();
+    content[key] = field.value.trim();
   });
-  content.mapEmbedUrl = MAP_EMBED_URL;
+  content.eventDate = formatDateDisplay(content.eventDateValue);
+  content.eventTime = formatTimeDisplay(content.eventTimeValue);
+  content.eventLocation = formatLocationDisplay(content.mapLocation);
+  if (!content.mapUrl) {
+    content.mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(content.mapLocation || DEFAULT_SITE_CONTENT.mapLocation)}`;
+  }
+  content.mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(
+    content.mapLocation || DEFAULT_SITE_CONTENT.mapLocation
+  )}&output=embed`;
   const state = document.querySelector("#contentSaveState");
   try {
-    if (!firestoreEnabled || !firestoreDb) throw new Error("Firestore is required to save website content.");
+    if (!firestoreEnabled || !firestoreDb) throw new Error("Firestore needed.");
     await firestoreDb.collection(SITE_CONTENT_COLLECTION).doc(SITE_CONTENT_DOC).set(content, { merge: true });
-    state.textContent = "Website content saved.";
+    state.textContent = "Saved.";
   } catch (error) {
-    state.textContent = error.message || "Could not save website content.";
+    state.textContent = error.message || "Not saved.";
+  }
+}
+
+function fillTicketEditor() {
+  const content = getSiteContent();
+  document.querySelectorAll("[data-ticket-field]").forEach((field) => {
+    const key = field.dataset.ticketField;
+    field.value = content[key] ?? "";
+  });
+}
+
+async function saveTicketSettings() {
+  const content = {};
+  document.querySelectorAll("[data-ticket-field]").forEach((field) => {
+    const key = field.dataset.ticketField;
+    content[key] = key === "ticketPrice" ? Number(field.value || 0) : field.value.trim();
+  });
+  const state = document.querySelector("#ticketSaveState");
+  try {
+    if (!firestoreEnabled || !firestoreDb) throw new Error("Firestore needed.");
+    await firestoreDb.collection(SITE_CONTENT_COLLECTION).doc(SITE_CONTENT_DOC).set(content, { merge: true });
+    state.textContent = "Saved.";
+  } catch (error) {
+    state.textContent = error.message || "Not saved.";
   }
 }
 
@@ -926,12 +1076,12 @@ function fillEventForm(event = {}) {
   document.querySelector("#eventId").value = event.id || "";
   document.querySelector("#eventTitle").value = event.title || "";
   document.querySelector("#eventDateAdmin").value = event.date || "";
-  document.querySelector("#eventTimeAdmin").value = event.time || "";
+  document.querySelector("#eventTimeAdmin").value = timeInputValue(event.time) || event.time || "";
   document.querySelector("#eventGame").value = event.game || "";
   document.querySelector("#eventTeamA").value = event.teamA || "";
-  document.querySelector("#eventFlagA").value = event.flagA || "";
+  document.querySelector("#eventFlagA").value = countryLabelFromCode(event.flagA);
   document.querySelector("#eventTeamB").value = event.teamB || "";
-  document.querySelector("#eventFlagB").value = event.flagB || "";
+  document.querySelector("#eventFlagB").value = countryLabelFromCode(event.flagB);
   document.querySelector("#eventPrice").value = event.price ?? "";
   document.querySelector("#eventImage").value = event.image || "";
   document.querySelector("#eventDescription").value = event.description || "";
@@ -951,12 +1101,14 @@ function eventFromForm() {
     id,
     title,
     date,
-    time: document.querySelector("#eventTimeAdmin").value.trim(),
+    time: document.querySelector("#eventTimeAdmin").value
+      ? formatTimeDisplay(document.querySelector("#eventTimeAdmin").value).replace(/^Time:\s*/i, "")
+      : "",
     game,
     teamA: document.querySelector("#eventTeamA").value.trim(),
-    flagA: document.querySelector("#eventFlagA").value.trim().toUpperCase(),
+    flagA: parseCountryCode(document.querySelector("#eventFlagA").value),
     teamB: document.querySelector("#eventTeamB").value.trim(),
-    flagB: document.querySelector("#eventFlagB").value.trim().toUpperCase(),
+    flagB: parseCountryCode(document.querySelector("#eventFlagB").value),
     price: Number(document.querySelector("#eventPrice").value || getSiteContent().ticketPrice || 0),
     image: document.querySelector("#eventImage").value.trim() || "assets/match-night.jpg",
     description: document.querySelector("#eventDescription").value.trim(),
@@ -968,16 +1120,16 @@ async function saveEventFromAdmin() {
   const event = eventFromForm();
   const state = document.querySelector("#eventSaveState");
   if (!event.date || !event.game) {
-    state.textContent = "Date and game are required.";
+    state.textContent = "Date + game required.";
     return;
   }
   try {
-    if (!firestoreEnabled || !firestoreDb) throw new Error("Firestore is required to save events.");
+    if (!firestoreEnabled || !firestoreDb) throw new Error("Firestore needed.");
     await firestoreDb.collection(EVENTS_COLLECTION).doc(event.id).set(event, { merge: true });
     clearEventForm();
-    state.textContent = "Event saved.";
+    state.textContent = "Saved.";
   } catch (error) {
-    state.textContent = error.message || "Could not save event.";
+    state.textContent = error.message || "Not saved.";
   }
 }
 
@@ -1019,12 +1171,14 @@ function renderAdminEvents() {
 
 function subscribeAdminContent() {
   fillContentEditor();
+  fillTicketEditor();
   renderAdminEvents();
   if (!firestoreEnabled || !firestoreDb) return;
   firestoreDb.collection(SITE_CONTENT_COLLECTION).doc(SITE_CONTENT_DOC).onSnapshot((doc) => {
     if (doc.exists) siteContent = { ...DEFAULT_SITE_CONTENT, ...doc.data() };
     syncSingleTicketCategory();
     fillContentEditor();
+    fillTicketEditor();
     populateCategorySelects();
   });
   firestoreDb.collection(EVENTS_COLLECTION).orderBy("date").onSnapshot((snapshot) => {
@@ -1043,6 +1197,7 @@ function initAdminPage() {
   const rows = document.querySelector("#registrationRows");
   if (!rows) return;
 
+  initCountryOptions();
   document.querySelectorAll(".admin-quick-actions a[href^='#']").forEach((link) => {
     link.addEventListener("click", () => {
       const target = document.querySelector(link.getAttribute("href"));
@@ -1081,6 +1236,7 @@ function initAdminPage() {
   document.querySelector("#closeInstallHelp").addEventListener("click", () => closeInstallHelp(true));
   document.querySelector("#installHelpDone").addEventListener("click", () => closeInstallHelp(true));
   document.querySelector("#saveContentSettings").addEventListener("click", saveContentSettings);
+  document.querySelector("#saveTicketSettings").addEventListener("click", saveTicketSettings);
   document.querySelector("#saveEvent").addEventListener("click", saveEventFromAdmin);
 
   subscribeAdminContent();

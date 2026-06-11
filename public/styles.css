@@ -981,12 +981,16 @@ textarea {
   order: 5;
 }
 
-.content-admin-panel {
+.tickets-admin-panel {
   order: 6;
 }
 
-.scan-records-panel {
+.content-admin-panel {
   order: 7;
+}
+
+.scan-records-panel {
+  order: 8;
 }
 
 .admin-summary {
@@ -1046,14 +1050,16 @@ details.admin-panel[open] .admin-summary {
 }
 
 .content-editor-grid,
-.event-editor-grid {
+.event-editor-grid,
+.ticket-editor-grid {
   display: grid;
   gap: 0.85rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .content-editor-grid textarea,
-.event-editor-grid textarea {
+.event-editor-grid textarea,
+.ticket-editor-grid textarea {
   min-height: 86px;
 }
 
@@ -1577,7 +1583,8 @@ td {
 
   .map-section,
   .content-editor-grid,
-  .event-editor-grid {
+  .event-editor-grid,
+  .ticket-editor-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1741,6 +1748,7 @@ td {
 
   .content-editor-grid,
   .event-editor-grid,
+  .ticket-editor-grid,
   .admin-events-list,
   .scan-records {
     background: #fff;
@@ -1752,7 +1760,7 @@ td {
 
   .admin-quick-actions {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .admin-quick-actions a {

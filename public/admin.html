@@ -66,48 +66,36 @@
 
       <div class="admin-quick-actions" aria-label="Admin quick actions">
         <a href="#guestListPanel">Guests</a>
-        <a href="#eventSettings">Events and tickets</a>
+        <a href="#eventSettings">Events</a>
+        <a href="#ticketSettings">Tickets</a>
         <a href="#websiteSettings">Website</a>
       </div>
 
       <details class="admin-panel content-admin-panel" id="websiteSettings">
         <summary class="admin-summary">
           <span>
-            <strong>Website settings</strong>
-            <small>Hero text, ticket preview, photos, and map.</small>
+            <strong>Website</strong>
+            <small>Hero, date, time, map.</small>
           </span>
           <span>Edit</span>
         </summary>
         <div class="panel-header">
           <div>
-            <p class="eyebrow">Website content</p>
-            <h2>Hero, ticket, photos, and venue text</h2>
+            <p class="eyebrow">Website</p>
+            <h2>Public page</h2>
           </div>
-          <button class="button button--primary" id="saveContentSettings" type="button">Save website content</button>
+          <button class="button button--primary" id="saveContentSettings" type="button">Save</button>
         </div>
         <div class="content-editor-grid" id="contentEditor">
-          <label>Hero eyebrow<input data-content-field="heroEyebrow" /></label>
-          <label>Hero title<input data-content-field="heroTitle" /></label>
-          <label>Hero lead<textarea data-content-field="heroLead" rows="3"></textarea></label>
-          <label>Date text<input data-content-field="eventDate" /></label>
-          <label>Time text<input data-content-field="eventTime" /></label>
-          <label>Location text<input data-content-field="eventLocation" /></label>
-          <label>Ticket name<input data-content-field="ticketName" /></label>
-          <label>Ticket price<input data-content-field="ticketPrice" type="number" min="0" step="0.01" /></label>
-          <label>Ticket description<textarea data-content-field="ticketDescription" rows="3"></textarea></label>
-          <label>Ticket access label<input data-content-field="ticketAccess" /></label>
-          <label>Hero ticket image URL<input data-content-field="heroImage" /></label>
-          <label>Registration ticket preview URL<input data-content-field="ticketPreviewImage" /></label>
-          <label>Experience title<input data-content-field="experienceTitle" /></label>
-          <label>Experience copy<textarea data-content-field="experienceCopy" rows="3"></textarea></label>
-          <label>Feature 1<input data-content-field="featureTent" /></label>
-          <label>Feature 2<input data-content-field="featureVip" /></label>
-          <label>Feature 3<input data-content-field="featureChildren" /></label>
-          <label>Feature 4<input data-content-field="featureCheckin" /></label>
-          <label>Photo 1 URL<input data-content-field="photo1" /></label>
-          <label>Photo 2 URL<input data-content-field="photo2" /></label>
-          <label>Photo 3 URL<input data-content-field="photo3" /></label>
-          <label>Google Maps URL<input data-content-field="mapUrl" /></label>
+          <label>Eyebrow<input data-content-field="heroEyebrow" /></label>
+          <label>Title<input data-content-field="heroTitle" /></label>
+          <label class="span-2">Lead<textarea data-content-field="heroLead" rows="2"></textarea></label>
+          <label>Date<input data-content-field="eventDateValue" type="date" /></label>
+          <label>Time<input data-content-field="eventTimeValue" type="time" /></label>
+          <label>Location<input data-content-field="mapLocation" placeholder="Bikers Village, Airport Road" /></label>
+          <label>Maps URL<input data-content-field="mapUrl" /></label>
+          <label>Hero image<input data-content-field="heroImage" /></label>
+          <label>Ticket image<input data-content-field="ticketPreviewImage" /></label>
         </div>
         <p class="admin-save-state" id="contentSaveState"></p>
       </details>
@@ -115,35 +103,60 @@
       <details class="admin-panel events-admin-panel" id="eventSettings">
         <summary class="admin-summary">
           <span>
-            <strong>Events and tickets</strong>
-            <small>Add match dates, prices, images, and flags.</small>
+            <strong>Events</strong>
+            <small>Dates, teams, price.</small>
           </span>
           <span>Edit</span>
         </summary>
         <div class="panel-header">
           <div>
-            <p class="eyebrow">Event schedule</p>
-            <h2>Add dates, games, images, and flags</h2>
+            <p class="eyebrow">Events</p>
+            <h2>Add event</h2>
           </div>
-          <button class="button button--primary" id="saveEvent" type="button">Save event</button>
+          <button class="button button--primary" id="saveEvent" type="button">Save</button>
         </div>
         <div class="event-editor-grid">
           <input type="hidden" id="eventId" />
           <label>Title<input id="eventTitle" placeholder="Quarter-final night" /></label>
           <label>Date<input id="eventDateAdmin" type="date" /></label>
-          <label>Time<input id="eventTimeAdmin" placeholder="7:00 PM" /></label>
+          <label>Time<input id="eventTimeAdmin" type="time" /></label>
           <label>Game<input id="eventGame" placeholder="Jordan vs Brazil" /></label>
           <label>Team A<input id="eventTeamA" placeholder="Jordan" /></label>
-          <label>Flag A ISO<input id="eventFlagA" maxlength="2" placeholder="JO" /></label>
+          <label>Nation A<input id="eventFlagA" list="countryOptions" placeholder="Jordan or JO" /></label>
           <label>Team B<input id="eventTeamB" placeholder="Brazil" /></label>
-          <label>Flag B ISO<input id="eventFlagB" maxlength="2" placeholder="BR" /></label>
+          <label>Nation B<input id="eventFlagB" list="countryOptions" placeholder="Brazil or BR" /></label>
           <label>Price<input id="eventPrice" type="number" min="0" step="0.01" /></label>
-          <label>Image URL<input id="eventImage" placeholder="assets/match-night.jpg" /></label>
-          <label class="span-2">Description<textarea id="eventDescription" rows="3"></textarea></label>
-          <label class="checkbox-row"><input id="eventActive" type="checkbox" checked /> Active on website</label>
+          <label>Image<input id="eventImage" placeholder="assets/match-night.jpg" /></label>
+          <label class="span-2">Note<textarea id="eventDescription" rows="2"></textarea></label>
+          <label class="checkbox-row"><input id="eventActive" type="checkbox" checked /> Active</label>
         </div>
+        <datalist id="countryOptions"></datalist>
         <p class="admin-save-state" id="eventSaveState"></p>
         <div class="admin-events-list" id="adminEventsList"></div>
+      </details>
+
+      <details class="admin-panel tickets-admin-panel" id="ticketSettings">
+        <summary class="admin-summary">
+          <span>
+            <strong>Tickets</strong>
+            <small>Name, price, access.</small>
+          </span>
+          <span>Edit</span>
+        </summary>
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Tickets</p>
+            <h2>Default ticket</h2>
+          </div>
+          <button class="button button--primary" id="saveTicketSettings" type="button">Save</button>
+        </div>
+        <div class="ticket-editor-grid">
+          <label>Name<input data-ticket-field="ticketName" /></label>
+          <label>Price<input data-ticket-field="ticketPrice" type="number" min="0" step="0.01" /></label>
+          <label>Access<input data-ticket-field="ticketAccess" /></label>
+          <label class="span-2">Note<textarea data-ticket-field="ticketDescription" rows="2"></textarea></label>
+        </div>
+        <p class="admin-save-state" id="ticketSaveState"></p>
       </details>
 
       <section class="admin-panel registrations-admin-panel" id="guestListPanel">
