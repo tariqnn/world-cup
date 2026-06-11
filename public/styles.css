@@ -32,6 +32,7 @@ body {
   color: var(--ink);
   font-family: "Fira Sans", Arial, sans-serif;
   line-height: 1.5;
+  overflow-x: hidden;
 }
 
 body::before {
@@ -127,6 +128,7 @@ select {
   flex-wrap: wrap;
   gap: 0.45rem;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .main-nav a,
@@ -895,6 +897,18 @@ textarea {
   padding: clamp(1rem, 4vw, 2rem);
 }
 
+.admin-shell,
+.admin-panel,
+.panel-header,
+.admin-summary,
+.admin-event-row,
+.admin-mobile-card,
+.scan-record,
+.scanner-dialog,
+.app-sheet {
+  min-width: 0;
+}
+
 .admin-hero {
   align-items: center;
   background: #fff;
@@ -1003,6 +1017,13 @@ textarea {
   min-height: 64px;
 }
 
+.admin-summary > span:first-child,
+.panel-header > div,
+.admin-event-row > div,
+.admin-card-head > div {
+  min-width: 0;
+}
+
 .admin-summary::-webkit-details-marker {
   display: none;
 }
@@ -1021,6 +1042,7 @@ textarea {
   color: var(--muted);
   font-weight: 700;
   margin-top: 0.15rem;
+  overflow-wrap: anywhere;
 }
 
 details.admin-panel[open] .admin-summary {
@@ -1118,6 +1140,7 @@ details.admin-panel[open] .admin-summary {
   color: var(--muted);
   font-size: 0.9rem;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .admin-event-row button {
@@ -1287,6 +1310,10 @@ td {
   padding: 0.7rem;
 }
 
+.admin-card-meta span {
+  overflow-wrap: anywhere;
+}
+
 .admin-card-controls {
   display: grid;
   gap: 0.7rem;
@@ -1350,6 +1377,7 @@ td {
 
 .scan-record small {
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .scan-record--success {
@@ -1670,6 +1698,7 @@ td {
     align-items: center;
     background: var(--maroon-950);
     flex-direction: row;
+    flex-wrap: nowrap;
     min-height: 62px;
     padding: calc(0.55rem + env(safe-area-inset-top)) 0.85rem 0.55rem;
     position: sticky;
@@ -1898,6 +1927,7 @@ td {
     flex: 1 1 auto;
     justify-content: center;
     min-height: min(68dvh, 560px);
+    width: 100%;
   }
 
   #qrReader > div,
@@ -1939,17 +1969,55 @@ td {
   }
 }
 
-@media (max-width: 420px) {
-  .admin-card-controls,
-  .admin-card-actions {
-    grid-template-columns: 1fr;
+@media (max-width: 560px) {
+  .site-header--admin {
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 0.65rem;
   }
 
-  .admin-panel > .panel-header {
+  .site-header--admin .brand span {
+    max-width: none;
+  }
+
+  .site-header--admin .main-nav {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .site-header--admin .main-nav button {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .admin-summary {
     align-items: stretch;
     flex-direction: column;
   }
 
+  .admin-summary > span:last-child {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .panel-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .panel-header .button {
+    width: 100%;
+  }
+
+  .admin-quick-actions,
+  .stats-grid,
+  .admin-card-controls,
+  .admin-card-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
   .site-header--admin .main-nav button {
     font-size: 0.82rem;
     padding-inline: 0.5rem;

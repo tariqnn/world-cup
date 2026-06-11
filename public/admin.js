@@ -18,37 +18,60 @@ let adminEventsCache = [];
 let adminGamesCache = [];
 
 const COUNTRY_OPTIONS = [
+  ["DZ", "Algeria"],
   ["AR", "Argentina"],
   ["AU", "Australia"],
+  ["AT", "Austria"],
+  ["BA", "Bosnia and Herzegovina"],
   ["BE", "Belgium"],
   ["BR", "Brazil"],
-  ["CA", "Canada"],
   ["CN", "China"],
+  ["CV", "Cabo Verde"],
+  ["CA", "Canada"],
+  ["CH", "Switzerland"],
+  ["CO", "Colombia"],
+  ["CG", "Congo"],
   ["CR", "Costa Rica"],
-  ["DE", "Germany"],
+  ["CW", "Curacao"],
+  ["HR", "Croatia"],
+  ["CZ", "Czechia"],
   ["DK", "Denmark"],
+  ["EC", "Ecuador"],
   ["EG", "Egypt"],
-  ["ES", "Spain"],
+  ["ENG", "England"],
   ["FR", "France"],
-  ["GB", "United Kingdom"],
+  ["DE", "Germany"],
   ["GH", "Ghana"],
+  ["HT", "Haiti"],
+  ["IQ", "Iraq"],
   ["IR", "Iran"],
+  ["CI", "Ivory Coast"],
   ["IT", "Italy"],
-  ["JO", "Jordan"],
   ["JP", "Japan"],
+  ["JO", "Jordan"],
   ["KR", "South Korea"],
   ["MA", "Morocco"],
+  ["ES", "Spain"],
+  ["GB", "United Kingdom"],
   ["MX", "Mexico"],
   ["NL", "Netherlands"],
+  ["NO", "Norway"],
+  ["NZ", "New Zealand"],
+  ["PA", "Panama"],
+  ["PY", "Paraguay"],
   ["PL", "Poland"],
   ["PT", "Portugal"],
   ["QA", "Qatar"],
   ["SA", "Saudi Arabia"],
+  ["SCO", "Scotland"],
   ["SN", "Senegal"],
+  ["SE", "Sweden"],
   ["TN", "Tunisia"],
   ["TR", "Turkey"],
-  ["US", "United States"],
+  ["US", "USA"],
   ["UY", "Uruguay"],
+  ["UZ", "Uzbekistan"],
+  ["ZA", "South Africa"],
 ];
 
 function escapeHtml(value) {
@@ -267,12 +290,53 @@ async function updateStatus(id, status) {
   await updateRegistrationStatus(id, status);
 }
 
+async function deleteCollectionMatches(collectionName, field, value, batchSize = 150) {
+  if (!firestoreEnabled || !firestoreDb) return;
+  while (true) {
+    const snapshot = await firestoreDb.collection(collectionName).where(field, "==", value).limit(batchSize).get();
+    if (snapshot.empty) return;
+    const batch = firestoreDb.batch();
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+    if (snapshot.size < batchSize) return;
+  }
+}
+
+async function purgeCollection(collectionName, batchSize = 150) {
+  if (!firestoreEnabled || !firestoreDb) return;
+  while (true) {
+    const snapshot = await firestoreDb.collection(collectionName).limit(batchSize).get();
+    if (snapshot.empty) return;
+    const batch = firestoreDb.batch();
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+    if (snapshot.size < batchSize) return;
+  }
+}
+
+async function deleteRegistrationCascade(id) {
+  if (!firestoreEnabled || !firestoreDb) {
+    await deleteRegistrationById(id);
+    return;
+  }
+  await Promise.all([
+    deleteCollectionMatches(QR_COLLECTION, "registrationId", id),
+    deleteCollectionMatches(SCAN_COLLECTION, "registrationId", id),
+    deleteCollectionMatches(SCAN_COLLECTION, "expectedRegistrationId", id),
+  ]);
+  await firestoreDb.collection(FIREBASE_COLLECTION).doc(id).delete();
+}
+
 async function deleteRegistration(id) {
   const registration = readRegistrations().find((item) => item.id === id);
   if (!registration) return;
   const confirmed = window.confirm(`Delete registration ${registration.confirmation}?`);
   if (!confirmed) return;
-  await deleteRegistrationById(id);
+  try {
+    await deleteRegistrationCascade(id);
+  } catch (error) {
+    window.alert(error.message || "Could not delete this registration.");
+  }
 }
 
 function buildPassPlans(registration) {
@@ -557,13 +621,13 @@ function countryCodeFromEventTeam(event = {}, side = "A") {
 
 function parseCountryCode(value) {
   const normalized = String(value || "").trim();
-  const parenthesized = normalized.match(/\(([A-Za-z]{2})\)$/);
+  const parenthesized = normalized.match(/\(([A-Za-z]{2,3})\)$/);
   if (parenthesized) return parenthesized[1].toUpperCase();
   const byCode = COUNTRY_OPTIONS.find(([code]) => code.toLowerCase() === normalized.toLowerCase());
   if (byCode) return byCode[0];
   const byName = COUNTRY_OPTIONS.find(([, name]) => name.toLowerCase() === normalized.toLowerCase());
   if (byName) return byName[0];
-  return /^[A-Za-z]{2}$/.test(normalized) ? normalized.toUpperCase() : "";
+  return /^[A-Za-z]{2,3}$/.test(normalized) ? normalized.toUpperCase() : "";
 }
 
 function initCountryOptions() {
@@ -871,6 +935,22 @@ function resetQrReader() {
   if (reader) reader.innerHTML = "";
 }
 
+function optimizeQrReaderForMobile() {
+  const applyVideoAttributes = () => {
+    const video = document.querySelector("#qrReader video");
+    if (!video) return false;
+    video.setAttribute("playsinline", "true");
+    video.setAttribute("webkit-playsinline", "true");
+    video.muted = true;
+    video.autoplay = true;
+    return true;
+  };
+
+  if (applyVideoAttributes()) return;
+  window.setTimeout(applyVideoAttributes, 100);
+  window.setTimeout(applyVideoAttributes, 350);
+}
+
 async function startQrScanner(onScanSuccess, scanResult) {
   if (!window.Html5Qrcode) throw new Error("QR scanner tool did not load. Refresh the page and try again.");
 
@@ -892,6 +972,7 @@ async function startQrScanner(onScanSuccess, scanResult) {
     qrScanner = new Html5Qrcode("qrReader");
     try {
       await qrScanner.start(target, config, onScanSuccess);
+      optimizeQrReaderForMobile();
       return;
     } catch (error) {
       lastError = error;
@@ -908,6 +989,7 @@ async function startQrScanner(onScanSuccess, scanResult) {
       resetQrReader();
       qrScanner = new Html5Qrcode("qrReader");
       await qrScanner.start(backCamera.id, config, onScanSuccess);
+      optimizeQrReaderForMobile();
       return;
     }
   } catch (error) {
@@ -1048,9 +1130,21 @@ function exportCsv() {
 }
 
 async function clearAllRegistrations() {
-  const confirmed = window.confirm("Clear all registrations from this browser?");
+  const confirmed = window.confirm("Clear all registrations, QR passes, and scan records?");
   if (!confirmed) return;
-  await clearRegistrations();
+  try {
+    if (!firestoreEnabled || !firestoreDb) {
+      await clearRegistrations();
+      return;
+    }
+    await Promise.all([
+      purgeCollection(QR_COLLECTION),
+      purgeCollection(SCAN_COLLECTION),
+      purgeCollection(FIREBASE_COLLECTION),
+    ]);
+  } catch (error) {
+    window.alert(error.message || "Could not clear the admin data.");
+  }
 }
 
 function isIosDevice() {

@@ -88,7 +88,7 @@ const I18N = {
     "payment.paid": "Paid",
     "payment.unpaid": "Unpaid",
     "form.submit": "Submit registration",
-    "form.note": "Your confirmation appears below and is saved on this browser for the frontend demo.",
+    "form.note": "Your confirmation appears below after registration is completed.",
     "footer.public": "Nashama Arena at Bikers Village",
     "error.fullName": "Full name is required.",
     "error.email": "Enter a valid email address.",
@@ -218,7 +218,7 @@ const I18N = {
     "payment.paid": "مدفوع",
     "payment.unpaid": "غير مدفوع",
     "form.submit": "إرسال التسجيل",
-    "form.note": "سيظهر رقم التأكيد أدناه ويتم حفظه في هذا المتصفح للنسخة التجريبية.",
+    "form.note": "سيظهر رقم التأكيد أدناه بعد اكتمال التسجيل.",
     "footer.public": "نشامى أرينا في بيكرز فيليج",
     "error.fullName": "الاسم الكامل مطلوب.",
     "error.email": "أدخل بريدًا إلكترونيًا صحيحًا.",
@@ -387,89 +387,9 @@ const DEFAULT_SITE_CONTENT = {
   mapEmbedUrl: MAP_EMBED_URL,
 };
 
-const DEFAULT_EVENTS = [
-  {
-    id: "opening-night",
-    title: "Opening Match Night",
-    date: "2026-12-18",
-    time: "7:00 PM",
-    game: "Jordan vs Brazil",
-    teamA: "Jordan",
-    teamB: "Brazil",
-    flagA: "JO",
-    flagB: "BR",
-    price: 10,
-    image: "assets/match-night.jpg",
-    description: "A loud first-night screening with seating, food market, and family space.",
-    active: true,
-  },
-  {
-    id: "group-stage-night",
-    title: "Group Stage Double Header",
-    date: "2026-12-20",
-    time: "6:30 PM",
-    game: "Spain vs Japan",
-    teamA: "Spain",
-    teamB: "Japan",
-    flagA: "ES",
-    flagB: "JP",
-    price: 12,
-    image: "assets/screen-setup.jpg",
-    description: "Two-screen match-night setup with food, drinks, and relaxed seating.",
-    active: true,
-  },
-  {
-    id: "final-night",
-    title: "Final Night",
-    date: "2026-12-30",
-    time: "8:00 PM",
-    game: "Final screening",
-    teamA: "Team A",
-    teamB: "Team B",
-    flagA: "",
-    flagB: "",
-    price: 18,
-    image: "assets/venue-layout.jpg",
-    description: "The big final night with the full arena experience and premium viewing.",
-    active: true,
-  },
-];
+const DEFAULT_EVENTS = [];
 
-const DEFAULT_GAMES = [
-  {
-    id: "opening-night",
-    date: "2026-12-18",
-    time: "7:00 PM",
-    game: "Jordan vs Brazil",
-    teamA: "Jordan",
-    teamB: "Brazil",
-    flagA: "JO",
-    flagB: "BR",
-    active: true,
-  },
-  {
-    id: "group-stage-night",
-    date: "2026-12-20",
-    time: "6:30 PM",
-    game: "Spain vs Japan",
-    teamA: "Spain",
-    teamB: "Japan",
-    flagA: "ES",
-    flagB: "JP",
-    active: true,
-  },
-  {
-    id: "final-night",
-    date: "2026-12-30",
-    time: "8:00 PM",
-    game: "Final screening",
-    teamA: "Team A",
-    teamB: "Team B",
-    flagA: "",
-    flagB: "",
-    active: true,
-  },
-];
+const DEFAULT_GAMES = [];
 
 function getSiteContent() {
   return { ...DEFAULT_SITE_CONTENT, ...(siteContent || {}) };
@@ -656,13 +576,114 @@ function activeGames() {
     .sort((a, b) => `${a.date || ""} ${a.time || ""}`.localeCompare(`${b.date || ""} ${b.time || ""}`));
 }
 
+function subdivisionFlag(tag) {
+  return String.fromCodePoint(
+    0x1f3f4,
+    ...tag.toLowerCase().split("").map((char) => 0xe0000 + char.charCodeAt(0)),
+    0xe007f
+  );
+}
+
+const SPECIAL_TEAM_FLAGS = {
+  ENG: subdivisionFlag("gbeng"),
+  SCO: subdivisionFlag("gbsct"),
+};
+
 function flagEmoji(code) {
   const normalized = String(code || "").trim().toUpperCase();
+  if (SPECIAL_TEAM_FLAGS[normalized]) return SPECIAL_TEAM_FLAGS[normalized];
   if (!/^[A-Z]{2}$/.test(normalized)) return "";
   return normalized
     .split("")
     .map((char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
     .join("");
+}
+
+function buildAbsoluteUrl(value) {
+  if (!value) return "";
+  try {
+    return new URL(value, window.location.href).href;
+  } catch {
+    return "";
+  }
+}
+
+function setMetaContent(selector, value) {
+  const node = document.querySelector(selector);
+  if (node && value) node.setAttribute("content", value);
+}
+
+function setLinkHref(selector, value) {
+  const node = document.querySelector(selector);
+  if (node && value) node.setAttribute("href", value);
+}
+
+function updateSeo() {
+  const content = getSiteContent();
+  const title = content.heroTitle ? `${content.heroTitle} | Nashama Arena` : "Nashama Arena Registration";
+  const description =
+    content.heroLead ||
+    "Register for Nashama Arena at Bikers Village for World Cup 2026 match nights, tickets, venue access, and event updates.";
+  const image = buildAbsoluteUrl(content.heroImage || "assets/vip-pass.jpg");
+  const pageUrl =
+    window.location.protocol === "file:"
+      ? "index.html"
+      : new URL(window.location.pathname || "/", window.location.origin).href;
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        name: "Nashama Arena",
+        url: pageUrl,
+        inLanguage: document.documentElement.lang || "en",
+        description,
+      },
+      {
+        "@type": "SportsEvent",
+        name: title,
+        description,
+        eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+        eventStatus: "https://schema.org/EventScheduled",
+        image: image ? [image] : undefined,
+        startDate:
+          content.eventDateValue && content.eventTimeValue
+            ? `${content.eventDateValue}T${content.eventTimeValue}:00`
+            : content.eventDateValue || undefined,
+        location: {
+          "@type": "Place",
+          name: plainLocation(content.eventLocation) || content.mapLocation || "Bikers Village",
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: "Amman",
+            addressCountry: "JO",
+          },
+        },
+        organizer: {
+          "@type": "Organization",
+          name: "Nashama Arena",
+          url: pageUrl,
+        },
+      },
+    ],
+  };
+
+  document.title = title;
+  setMetaContent("meta[name='description']", description);
+  setMetaContent("meta[name='keywords']", "Nashama Arena, World Cup 2026, fan zone, Bikers Village, Amman, tickets");
+  setMetaContent("meta[property='og:title']", title);
+  setMetaContent("meta[property='og:description']", description);
+  setMetaContent("meta[property='og:url']", pageUrl);
+  setMetaContent("meta[property='og:image']", image);
+  setMetaContent("meta[name='twitter:title']", title);
+  setMetaContent("meta[name='twitter:description']", description);
+  setMetaContent("meta[name='twitter:image']", image);
+  setLinkHref("link[rel='canonical']", pageUrl);
+
+  const schemaNode = document.querySelector("#structuredData");
+  if (schemaNode) {
+    schemaNode.textContent = JSON.stringify(structuredData);
+  }
 }
 
 function renderSiteContent() {
@@ -699,6 +720,7 @@ function renderSiteContent() {
   });
   const mapFrame = document.querySelector("[data-map-frame]");
   if (mapFrame) mapFrame.src = content.mapEmbedUrl || MAP_EMBED_URL;
+  updateSeo();
 }
 
 function renderEvents() {
