@@ -867,6 +867,7 @@ async function initContentData() {
 
   firestoreDb.collection(GAMES_COLLECTION).orderBy("date").onSnapshot((snapshot) => {
     gamesCache = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    renderEvents();
     populateEventControls();
     renderTicketPicker();
     updateTotal();
