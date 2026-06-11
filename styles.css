@@ -230,13 +230,20 @@ h3 {
   margin: 2rem 0;
 }
 
-.event-strip span {
+.event-strip span,
+.event-strip a {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(242, 223, 176, 0.24);
   border-radius: var(--radius);
   color: #fff7e7;
+  display: inline-flex;
   font-weight: 700;
   padding: 0.75rem 1rem;
+  text-decoration: none;
+}
+
+.event-strip a:hover {
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .hero-event-box {
@@ -530,8 +537,10 @@ h3 {
   color: #fff;
   display: grid;
   gap: 0.55rem;
+  margin-inline: auto;
   max-width: 540px;
   padding: 0.9rem;
+  width: 100%;
 }
 
 .game-date-picker__label {
@@ -1263,6 +1272,21 @@ details.admin-panel[open] .admin-summary {
   gap: 1rem;
   grid-template-columns: minmax(260px, 1fr) repeat(2, minmax(160px, 0.32fr));
   margin-bottom: 1rem;
+}
+
+.admin-game-filters {
+  background: #fffaf1;
+  border: 1px solid var(--gold-200);
+  border-radius: var(--radius);
+  grid-template-columns: minmax(220px, 1.1fr) repeat(3, minmax(130px, 0.35fr));
+  margin-top: 1rem;
+  padding: 0.85rem;
+}
+
+.admin-list-count {
+  color: var(--maroon-800);
+  font-weight: 900;
+  margin: 0.2rem 0 0;
 }
 
 .content-editor-grid,

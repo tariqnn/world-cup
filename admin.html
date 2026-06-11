@@ -131,6 +131,33 @@
           <label class="checkbox-row"><input id="gameActive" type="checkbox" checked /> Show on main website</label>
         </div>
         <p class="admin-save-state" id="gameSaveState"></p>
+        <div class="filters admin-game-filters" aria-label="Game filters">
+          <label>
+            Search games
+            <input id="gameAdminSearch" type="search" placeholder="Team, group, date..." />
+          </label>
+          <label>
+            Date
+            <select id="gameAdminDateFilter">
+              <option value="all">All dates</option>
+            </select>
+          </label>
+          <label>
+            Group
+            <select id="gameAdminGroupFilter">
+              <option value="all">All groups</option>
+            </select>
+          </label>
+          <label>
+            Status
+            <select id="gameAdminStatusFilter">
+              <option value="all">All games</option>
+              <option value="active">Visible</option>
+              <option value="hidden">Hidden</option>
+            </select>
+          </label>
+        </div>
+        <p class="admin-list-count" id="adminGamesCount"></p>
         <div class="admin-events-list" id="adminGamesList"></div>
       </details>
 

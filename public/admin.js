@@ -17,6 +17,12 @@ let currentPdf = null;
 let adminEventsCache = [];
 let adminGamesCache = [];
 let editingGameGroup = "";
+let gameFilters = {
+  search: "",
+  date: "all",
+  group: "all",
+  status: "all",
+};
 
 const COUNTRY_OPTIONS = [
   ["DZ", "Algeria"],
@@ -1365,12 +1371,56 @@ async function deleteGame(id) {
   await firestoreDb.collection(GAMES_COLLECTION).doc(id).delete();
 }
 
+function setGameFilterOptions(selector, values, allLabel, selectedValue) {
+  const select = document.querySelector(selector);
+  if (!select) return;
+  const safeValues = values.filter(Boolean);
+  select.innerHTML = [
+    `<option value="all">${allLabel}</option>`,
+    ...safeValues.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`),
+  ].join("");
+  select.value = selectedValue !== "all" && safeValues.includes(selectedValue) ? selectedValue : "all";
+  if (selectedValue !== "all" && select.value === "all") {
+    if (selector.includes("Date")) gameFilters.date = "all";
+    if (selector.includes("Group")) gameFilters.group = "all";
+  }
+}
+
+function filteredAdminGames(games) {
+  const query = gameFilters.search.trim().toLowerCase();
+  return games.filter((game) => {
+    const searchable = [game.game, game.teamA, game.teamB, game.group, game.date, game.time]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    const matchesSearch = !query || searchable.includes(query);
+    const matchesDate = gameFilters.date === "all" || game.date === gameFilters.date;
+    const matchesGroup = gameFilters.group === "all" || game.group === gameFilters.group;
+    const matchesStatus =
+      gameFilters.status === "all" ||
+      (gameFilters.status === "active" && game.active !== false) ||
+      (gameFilters.status === "hidden" && game.active === false);
+    return matchesSearch && matchesDate && matchesGroup && matchesStatus;
+  });
+}
+
 function renderAdminGames() {
   const target = document.querySelector("#adminGamesList");
   if (!target) return;
   const games = adminGamesCache.length ? adminGamesCache : activeGames();
-  target.innerHTML = games.length
-    ? games
+  const dates = [...new Set(games.map((game) => game.date).filter(Boolean))].sort();
+  const groups = [...new Set(games.map((game) => game.group).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  setGameFilterOptions("#gameAdminDateFilter", dates, "All dates", gameFilters.date);
+  setGameFilterOptions("#gameAdminGroupFilter", groups, "All groups", gameFilters.group);
+  const visibleGames = filteredAdminGames(games);
+  const count = document.querySelector("#adminGamesCount");
+  if (count) {
+    count.textContent = games.length
+      ? `${visibleGames.length} of ${games.length} games shown`
+      : "No games loaded yet.";
+  }
+  target.innerHTML = visibleGames.length
+    ? visibleGames
         .map(
           (game) => `
             <article class="admin-event-row">
@@ -1387,7 +1437,7 @@ function renderAdminGames() {
           `
         )
         .join("")
-    : `<p class="ticket-empty">No games yet.</p>`;
+    : `<p class="ticket-empty">${games.length ? "No games match these filters." : "No games yet."}</p>`;
   target.querySelectorAll("[data-edit-game]").forEach((button) => {
     button.addEventListener("click", () => fillGameForm(games.find((game) => game.id === button.dataset.editGame)));
   });
@@ -1551,6 +1601,22 @@ function initAdminPage() {
   document.querySelector("#statusFilter").addEventListener("change", (event) => {
     filters.status = event.target.value;
     renderRows();
+  });
+  document.querySelector("#gameAdminSearch").addEventListener("input", (event) => {
+    gameFilters.search = event.target.value;
+    renderAdminGames();
+  });
+  document.querySelector("#gameAdminDateFilter").addEventListener("change", (event) => {
+    gameFilters.date = event.target.value;
+    renderAdminGames();
+  });
+  document.querySelector("#gameAdminGroupFilter").addEventListener("change", (event) => {
+    gameFilters.group = event.target.value;
+    renderAdminGames();
+  });
+  document.querySelector("#gameAdminStatusFilter").addEventListener("change", (event) => {
+    gameFilters.status = event.target.value;
+    renderAdminGames();
   });
   document.querySelector("#exportCsv").addEventListener("click", exportCsv);
   document.querySelector("#clearAll").addEventListener("click", clearAllRegistrations);

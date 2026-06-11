@@ -51,7 +51,6 @@
         <span data-i18n="brand.public">Nashama Arena</span>
       </a>
       <nav class="main-nav" aria-label="Main navigation">
-        <a href="#categories" data-i18n="nav.categories">Categories</a>
         <a href="#games">Games</a>
         <a href="#events">Events</a>
         <a href="#experience" data-i18n="nav.experience">Experience</a>
@@ -69,10 +68,15 @@
           <p class="hero__lead" data-i18n="hero.lead" data-content="heroLead">
             Secure theatre seating, VIP front-zone access, or charity support passes for the World Cup fan experience.
           </p>
-          <div class="event-strip" aria-label="Event details">
-            <span data-i18n="event.date" data-content="eventDate">Date: November 21, 2026</span>
-            <span data-i18n="event.time" data-content="eventTime">Time: 7:00 PM</span>
-            <span data-i18n="event.location" data-content="eventLocation">Location: Bikers Village</span>
+          <div class="event-strip" aria-label="Venue location">
+            <a
+              data-map-link
+              data-i18n="event.location"
+              data-content="eventLocation"
+              href="https://www.google.com/maps/search/?api=1&query=Bikers%20Village%20Airport%20Rd.%2C%20Amman%2C%20Jordan"
+              target="_blank"
+              rel="noreferrer"
+            >Location: Bikers Village</a>
           </div>
           <a class="hero-event-box" href="#events">
             <span>Upcoming events</span>
@@ -81,7 +85,6 @@
           </a>
           <div class="hero__actions">
             <a class="button button--primary" href="#registration" data-i18n="hero.cta">Start registration</a>
-            <a class="button button--ghost" href="#categories" data-i18n="hero.secondary">View categories</a>
             <a class="button button--ghost" href="#events">Events</a>
           </div>
         </div>
@@ -95,17 +98,6 @@
         <span data-i18n="partners.hosted">Hosted with</span>
         <img src="assets/bikers-village.png" alt="Bikers Village logo" />
         <img src="assets/flow-logo.jpg" alt="Flow creative hub logo" />
-      </section>
-
-      <section id="categories" class="section reveal">
-        <div class="section-heading">
-          <p class="eyebrow" data-i18n="categories.eyebrow">Registration categories</p>
-          <h2 data-i18n="categories.title">Choose the access level that fits your guest</h2>
-          <p data-i18n="categories.copy">
-            Categories are based on the ticket reference: VIP, theatre seating classes, and support contribution entries.
-          </p>
-        </div>
-        <div class="category-grid" id="categoryGrid"></div>
       </section>
 
       <section id="games" class="section reveal">
