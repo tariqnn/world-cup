@@ -290,6 +290,59 @@ async function updateStatus(id, status) {
   await updateRegistrationStatus(id, status);
 }
 
+function firestoreRestDocumentUrl(collectionName, id) {
+  const config = window.NASHAMA_FIREBASE_CONFIG;
+  if (!hasValidFirebaseConfig()) return "";
+  return `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+    config.projectId
+  )}/databases/(default)/documents/${encodeURIComponent(collectionName)}/${encodeURIComponent(id)}?key=${encodeURIComponent(
+    config.apiKey
+  )}`;
+}
+
+function encodeFirestoreValue(value) {
+  if (value === null || value === undefined) return { nullValue: null };
+  if (Array.isArray(value)) return { arrayValue: { values: value.map(encodeFirestoreValue) } };
+  if (typeof value === "boolean") return { booleanValue: value };
+  if (typeof value === "number") {
+    return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
+  }
+  if (typeof value === "object") return { mapValue: { fields: encodeFirestoreFields(value) } };
+  return { stringValue: String(value) };
+}
+
+function encodeFirestoreFields(data = {}) {
+  return Object.fromEntries(Object.entries(data).map(([key, value]) => [key, encodeFirestoreValue(value)]));
+}
+
+async function saveDocumentRest(collectionName, id, data) {
+  const url = firestoreRestDocumentUrl(collectionName, id);
+  if (!url) throw new Error("Firebase config is missing.");
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fields: encodeFirestoreFields(data) }),
+  });
+  if (!response.ok) throw new Error(`Could not save ${collectionName}.`);
+}
+
+async function saveDocumentWithFallback(collectionName, id, data) {
+  if (!firestoreEnabled || !firestoreDb) {
+    await saveDocumentRest(collectionName, id, data);
+    return;
+  }
+  try {
+    await Promise.race([
+      firestoreDb.collection(collectionName).doc(id).set(data, { merge: true }),
+      new Promise((_, reject) => {
+        window.setTimeout(() => reject(new Error("Firebase write timed out")), 6000);
+      }),
+    ]);
+  } catch {
+    await saveDocumentRest(collectionName, id, data);
+  }
+}
+
 async function deleteCollectionMatches(collectionName, field, value, batchSize = 150) {
   if (!firestoreEnabled || !firestoreDb) return;
   while (true) {
@@ -1295,8 +1348,7 @@ async function saveGameFromAdmin() {
     return;
   }
   try {
-    if (!firestoreEnabled || !firestoreDb) throw new Error("Firestore needed.");
-    await firestoreDb.collection(GAMES_COLLECTION).doc(game.id).set(game, { merge: true });
+    await saveDocumentWithFallback(GAMES_COLLECTION, game.id, game);
     clearGameForm();
     state.textContent = "Saved.";
   } catch (error) {
@@ -1390,8 +1442,7 @@ async function saveEventFromAdmin() {
     return;
   }
   try {
-    if (!firestoreEnabled || !firestoreDb) throw new Error("Firestore needed.");
-    await firestoreDb.collection(EVENTS_COLLECTION).doc(event.id).set(event, { merge: true });
+    await saveDocumentWithFallback(EVENTS_COLLECTION, event.id, event);
     clearEventForm();
     state.textContent = "Saved.";
   } catch (error) {

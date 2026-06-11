@@ -526,6 +526,45 @@ function hasValidFirebaseConfig() {
   return Boolean(config?.apiKey && config?.projectId && config?.appId && !config.apiKey.includes("PASTE"));
 }
 
+function firestoreRestCollectionUrl(collectionName) {
+  const config = window.NASHAMA_FIREBASE_CONFIG;
+  if (!hasValidFirebaseConfig()) return "";
+  return `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+    config.projectId
+  )}/databases/(default)/documents/${encodeURIComponent(collectionName)}?key=${encodeURIComponent(config.apiKey)}`;
+}
+
+function decodeFirestoreValue(value = {}) {
+  if ("stringValue" in value) return value.stringValue;
+  if ("integerValue" in value) return Number(value.integerValue);
+  if ("doubleValue" in value) return Number(value.doubleValue);
+  if ("booleanValue" in value) return Boolean(value.booleanValue);
+  if ("timestampValue" in value) return value.timestampValue;
+  if ("nullValue" in value) return null;
+  if ("arrayValue" in value) return (value.arrayValue.values || []).map(decodeFirestoreValue);
+  if ("mapValue" in value) return decodeFirestoreFields(value.mapValue.fields || {});
+  return undefined;
+}
+
+function decodeFirestoreFields(fields = {}) {
+  return Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, decodeFirestoreValue(value)]));
+}
+
+function decodeFirestoreDocument(doc = {}) {
+  const id = String(doc.name || "").split("/").pop();
+  return { id, ...decodeFirestoreFields(doc.fields || {}) };
+}
+
+async function fetchFirestoreCollectionRest(collectionName) {
+  const url = firestoreRestCollectionUrl(collectionName);
+  if (!url) return [];
+  const response = await fetch(url, { cache: "no-store" });
+  if (response.status === 404) return [];
+  if (!response.ok) throw new Error(`Could not load ${collectionName}.`);
+  const payload = await response.json();
+  return (payload.documents || []).map(decodeFirestoreDocument);
+}
+
 function initFirebaseStore() {
   readRegistrations();
   if (!hasValidFirebaseConfig() || !window.firebase?.firestore) {
@@ -848,6 +887,19 @@ async function initContentData() {
   renderCategoryCards();
   renderTicketPicker();
   updateTotal();
+
+  if (hasValidFirebaseConfig()) {
+    Promise.all([fetchFirestoreCollectionRest(EVENTS_COLLECTION), fetchFirestoreCollectionRest(GAMES_COLLECTION)])
+      .then(([events, games]) => {
+        if (events.length) eventsCache = events;
+        if (games.length) gamesCache = games;
+        renderEvents();
+        populateEventControls();
+        renderTicketPicker();
+        updateTotal();
+      })
+      .catch(() => {});
+  }
 
   if (!firestoreEnabled || !firestoreDb) return;
 
