@@ -451,6 +451,15 @@ function localized(value, lang = getLanguage()) {
   return typeof value === "object" ? value[lang] || value.en : value;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function applyTranslations() {
   const lang = getLanguage();
   document.documentElement.lang = lang;
@@ -602,20 +611,15 @@ function initFirebaseStore() {
   }
 }
 
-function activeEvents() {
+function activePublicEvents() {
   const events = eventsCache.length ? eventsCache : DEFAULT_EVENTS;
-  const visibleEvents = events
+  return events
     .filter((event) => event.active !== false)
     .sort((a, b) => `${a.date || ""} ${a.time || ""}`.localeCompare(`${b.date || ""} ${b.time || ""}`));
-  const eventKeys = new Set(
-    visibleEvents.map((event) => `${event.gameId || ""}|${event.date || ""}|${event.game || ""}`.toLowerCase())
-  );
-  const gameEvents = activeGames()
-    .filter((game) => {
-      const key = `${game.id || ""}|${game.date || ""}|${game.game || ""}`.toLowerCase();
-      const dateGameKey = `|${game.date || ""}|${game.game || ""}`.toLowerCase();
-      return !eventKeys.has(key) && !eventKeys.has(dateGameKey);
-    })
+}
+
+function activeGameEvents() {
+  return activeGames()
     .map((game) => ({
       id: `game-${game.id}`,
       gameId: game.id,
@@ -634,7 +638,10 @@ function activeEvents() {
       active: game.active !== false,
       source: "game",
     }));
-  return [...visibleEvents, ...gameEvents].sort((a, b) =>
+}
+
+function activeEvents() {
+  return [...activePublicEvents(), ...activeGameEvents()].sort((a, b) =>
     `${a.date || ""} ${a.time || ""}`.localeCompare(`${b.date || ""} ${b.time || ""}`)
   );
 }
@@ -667,6 +674,27 @@ function flagEmoji(code) {
     .split("")
     .map((char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
     .join("");
+}
+
+function flagImageCode(code) {
+  const normalized = String(code || "").trim().toUpperCase();
+  if (normalized === "ENG") return "gb-eng";
+  if (normalized === "SCO") return "gb-sct";
+  return /^[A-Z]{2}$/.test(normalized) ? normalized.toLowerCase() : "";
+}
+
+function flagImageHtml(code, teamName) {
+  const imageCode = flagImageCode(code);
+  if (!imageCode) return `<span class="flag-fallback">${flagEmoji(code)}</span>`;
+  const safeName = escapeHtml(teamName || "Team");
+  return `
+    <img
+      src="https://flagcdn.com/w160/${imageCode}.png"
+      srcset="https://flagcdn.com/w320/${imageCode}.png 2x"
+      alt="${safeName} flag"
+      loading="lazy"
+    />
+  `;
 }
 
 function buildAbsoluteUrl(value) {
@@ -798,14 +826,19 @@ function renderSiteContent() {
 }
 
 function renderEvents() {
-  const grid = document.querySelector("#eventsGrid");
+  renderGameSchedule();
+  renderSpecialEvents();
+}
+
+function renderGameSchedule() {
+  const grid = document.querySelector("#gamesGrid");
   const filters = document.querySelector("#gameDateFilters");
   if (!grid) return;
-  const events = activeEvents();
-  const dates = [...new Set(events.map((event) => event.date).filter(Boolean))];
-  if (!events.length) {
+  const games = activeGameEvents();
+  const dates = [...new Set(games.map((game) => game.date).filter(Boolean))];
+  if (!games.length) {
     if (filters) filters.innerHTML = "";
-    grid.innerHTML = `<p class="ticket-empty">Events will appear here soon.</p>`;
+    grid.innerHTML = `<p class="ticket-empty">Games will appear here soon.</p>`;
     return;
   }
 
@@ -819,7 +852,7 @@ function renderEvents() {
         (date) => `
           <button type="button" data-game-date="${date}"${date === selectedScheduleDate ? " aria-pressed=\"true\"" : ""}>
             <span>${formatScheduleDate(date)}</span>
-            <strong>${events.filter((event) => event.date === date).length} games</strong>
+            <strong>${games.filter((game) => game.date === date).length} games</strong>
           </button>
         `
       )
@@ -837,31 +870,78 @@ function renderEvents() {
     });
   }
 
-  const visibleEvents = selectedScheduleDate ? events.filter((event) => event.date === selectedScheduleDate) : events;
+  const visibleGames = selectedScheduleDate ? games.filter((game) => game.date === selectedScheduleDate) : games;
 
-  grid.innerHTML = visibleEvents
+  grid.innerHTML = visibleGames
+    .map(
+      (event) => `
+        <article class="game-card">
+          <div class="game-card__meta">
+            <span>${escapeHtml(event.group || "World Cup 2026")}</span>
+            <strong>${escapeHtml(event.time || "")}</strong>
+          </div>
+          <div class="matchup">
+            <div class="team-side">
+              <div class="flag-frame">${flagImageHtml(event.flagA, event.teamA)}</div>
+              <strong>${escapeHtml(event.teamA || "")}</strong>
+            </div>
+            <span class="versus">vs</span>
+            <div class="team-side">
+              <div class="flag-frame">${flagImageHtml(event.flagB, event.teamB)}</div>
+              <strong>${escapeHtml(event.teamB || "")}</strong>
+            </div>
+          </div>
+          <div class="game-card__bottom">
+            <div>
+              <span>Match ticket</span>
+              <strong>${formatMoney(event.price || getSiteContent().ticketPrice)}</strong>
+            </div>
+            <button class="button button--primary" type="button" data-event-buy="${escapeHtml(event.id)}">Add ticket</button>
+          </div>
+        </article>
+      `
+    )
+    .join("");
+
+  grid.querySelectorAll("[data-event-buy]").forEach((button) => {
+    button.addEventListener("click", () => selectEventForRegistration(button.dataset.eventBuy));
+  });
+}
+
+function renderSpecialEvents() {
+  const grid = document.querySelector("#eventsGrid");
+  if (!grid) return;
+  const events = activePublicEvents();
+  if (!events.length) {
+    grid.innerHTML = `<p class="ticket-empty">Special events will appear here soon.</p>`;
+    return;
+  }
+
+  grid.innerHTML = events
     .map(
       (event) => `
         <article class="event-card">
-          <img src="${event.image || "assets/match-night.jpg"}" alt="${event.title || event.game || "Event"}" loading="lazy" />
+          <img src="${escapeHtml(event.image || "assets/match-night.jpg")}" alt="${escapeHtml(
+        event.title || event.game || "Event"
+      )}" loading="lazy" />
           <div class="event-card__body">
             <div class="event-card__top">
-              <span>${event.date || ""}</span>
-              <span>${event.time || ""}</span>
+              <span>${escapeHtml(event.date || "")}</span>
+              <span>${escapeHtml(event.time || "")}</span>
             </div>
-            <h3>${event.title || event.game || "Match night"}</h3>
-            <p>${event.description || event.group || ""}</p>
+            <h3>${escapeHtml(event.title || event.game || "Event")}</h3>
+            <p>${escapeHtml(event.description || event.group || "")}</p>
             <div class="game-line">
-              <span>${flagEmoji(event.flagA)} ${event.teamA || ""}</span>
+              <span>${flagEmoji(event.flagA)} ${escapeHtml(event.teamA || "Event")}</span>
               <strong>vs</strong>
-              <span>${flagEmoji(event.flagB)} ${event.teamB || ""}</span>
+              <span>${flagEmoji(event.flagB)} ${escapeHtml(event.teamB || "Guests")}</span>
             </div>
             <div class="event-card__bottom">
               <div class="event-ticket-price">
                 <span>Event ticket</span>
                 <strong>${formatMoney(event.price || getSiteContent().ticketPrice)}</strong>
               </div>
-              <button class="button button--primary" type="button" data-event-buy="${event.id}">Add this ticket</button>
+              <button class="button button--primary" type="button" data-event-buy="${escapeHtml(event.id)}">Add this ticket</button>
             </div>
           </div>
         </article>

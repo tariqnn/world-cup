@@ -52,6 +52,7 @@
       </a>
       <nav class="main-nav" aria-label="Main navigation">
         <a href="#categories" data-i18n="nav.categories">Categories</a>
+        <a href="#games">Games</a>
         <a href="#events">Events</a>
         <a href="#experience" data-i18n="nav.experience">Experience</a>
         <a href="#location">Location</a>
@@ -107,14 +108,23 @@
         <div class="category-grid" id="categoryGrid"></div>
       </section>
 
-      <section id="events" class="section reveal">
+      <section id="games" class="section reveal">
         <div class="section-heading">
           <p class="eyebrow">Game schedule</p>
           <h2>Choose a date and game</h2>
           <p>Select a match date to see only the games available for that day.</p>
         </div>
         <div class="game-date-filters" id="gameDateFilters" aria-label="Game dates"></div>
-        <div class="events-grid" id="eventsGrid"></div>
+        <div class="events-grid game-schedule-grid" id="gamesGrid"></div>
+      </section>
+
+      <section id="events" class="section reveal">
+        <div class="section-heading">
+          <p class="eyebrow">Special events</p>
+          <h2>Events beside the games</h2>
+          <p>Use Admin Events for fan activities, screenings, offers, or special nights that are separate from match fixtures.</p>
+        </div>
+        <div class="events-grid special-events-grid" id="eventsGrid"></div>
       </section>
 
       <section id="experience" class="section section--split reveal">
