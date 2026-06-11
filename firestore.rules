@@ -81,16 +81,19 @@ service cloud.firestore {
         'male',
         'female'
       ]
-      && request.resource.data.categoryId in [
-        'general-ticket',
-        'vip-class',
-        'class-a',
-        'class-b',
-        'vip-support',
-        'support-a',
-        'support-b',
-        'multiple'
-      ]
+      && (
+        request.resource.data.categoryId in [
+          'general-ticket',
+          'vip-class',
+          'class-a',
+          'class-b',
+          'vip-support',
+          'support-a',
+          'support-b',
+          'multiple'
+        ] ||
+        request.resource.data.categoryId.matches('^event-ticket-[A-Za-z0-9_-]+$')
+      )
       && request.resource.data.tickets is list
       && request.resource.data.quantity is int
       && request.resource.data.totalQuantity is int

@@ -398,6 +398,36 @@ const DEFAULT_EVENTS = [
     description: "A loud first-night screening with seating, food market, and family space.",
     active: true,
   },
+  {
+    id: "group-stage-night",
+    title: "Group Stage Double Header",
+    date: "2026-12-20",
+    time: "6:30 PM",
+    game: "Spain vs Japan",
+    teamA: "Spain",
+    teamB: "Japan",
+    flagA: "ES",
+    flagB: "JP",
+    price: 12,
+    image: "assets/screen-setup.jpg",
+    description: "Two-screen match-night setup with food, drinks, and relaxed seating.",
+    active: true,
+  },
+  {
+    id: "final-night",
+    title: "Final Night",
+    date: "2026-12-30",
+    time: "8:00 PM",
+    game: "Final screening",
+    teamA: "Team A",
+    teamB: "Team B",
+    flagA: "",
+    flagB: "",
+    price: 18,
+    image: "assets/venue-layout.jpg",
+    description: "The big final night with the full arena experience and premium viewing.",
+    active: true,
+  },
 ];
 
 function getSiteContent() {
@@ -427,6 +457,7 @@ function getTicketCategory(event = selectedEvent()) {
       badgeKey: "category.badge.general",
       price: Number(event.price ?? content.ticketPrice ?? DEFAULT_SITE_CONTENT.ticketPrice),
       featured: true,
+      event,
     };
   }
   return {
@@ -653,7 +684,7 @@ function renderEvents() {
                 <span>Event ticket</span>
                 <strong>${formatMoney(event.price || getSiteContent().ticketPrice)}</strong>
               </div>
-              <button class="button button--primary" type="button" data-event-buy="${event.id}">Buy this ticket</button>
+              <button class="button button--primary" type="button" data-event-buy="${event.id}">Add this ticket</button>
             </div>
           </div>
         </article>
@@ -674,7 +705,7 @@ function selectEventForRegistration(eventId) {
   if (dateInput) dateInput.value = event.date || "";
   populateEventControls();
   if (gameSelect) gameSelect.value = event.id;
-  selectedTickets = { [eventTicketId(event.id)]: 1 };
+  addTicket(eventTicketId(event.id), 1);
   renderTicketPicker();
   updateTotal();
   document.querySelector("#registration")?.scrollIntoView({ behavior: "smooth" });
@@ -895,11 +926,14 @@ function renderSelectedTickets(lang = getLanguage()) {
   return entries
     .map(([categoryId, quantity]) => {
       const category = getCategory(categoryId);
+      const event = category.event;
+      const eventMeta = event ? [event.date, event.time, event.game].filter(Boolean).join(" - ") : "";
       return `
         <div class="ticket-row" data-selected-ticket="${category.id}">
           <div>
             <strong>${localized(category.name, lang)}</strong>
             <span>${formatMoney(category.price)} · ${formatMoney(category.price * quantity)}</span>
+            ${eventMeta ? `<span>${eventMeta}</span>` : ""}
           </div>
           <input
             type="number"
@@ -958,10 +992,20 @@ function getTicketSelection() {
   const tickets = Object.entries(selectedTickets)
     .map(([categoryId, quantity]) => {
       const category = getCategory(categoryId);
+      const event = category.event || eventFromTicketId(categoryId);
       quantity = Math.max(0, Number(quantity || 0));
       return {
         categoryId: category.id,
         categoryName: category.name.en,
+        eventId: event?.id || "",
+        eventTitle: event?.title || "",
+        eventDate: event?.date || "",
+        eventTime: event?.time || "",
+        game: event?.game || "",
+        teamA: event?.teamA || "",
+        teamB: event?.teamB || "",
+        flagA: event?.flagA || "",
+        flagB: event?.flagB || "",
         quantity,
         price: category.price,
         total: category.price * quantity,
@@ -973,6 +1017,7 @@ function getTicketSelection() {
     tickets,
     totalQuantity: tickets.reduce((sum, ticket) => sum + ticket.quantity, 0),
     total: tickets.reduce((sum, ticket) => sum + ticket.total, 0),
+    eventTickets: tickets.filter((ticket) => ticket.eventId),
   };
 }
 
@@ -984,8 +1029,8 @@ function validateRegistration(formData, ticketSelection) {
   }
   if (!formData.phone.trim()) errors.phone = t("error.phone");
   if (!formData.gender) errors.gender = t("error.gender");
-  if (!formData.eventDate) errors.eventDate = "Choose an event date.";
-  if (!formData.game) errors.game = "Choose a game.";
+  if (!formData.eventDate && !ticketSelection.eventTickets.length) errors.eventDate = "Choose an event date.";
+  if (!formData.game && !ticketSelection.eventTickets.length) errors.game = "Choose a game.";
   if (!ticketSelection.totalQuantity || ticketSelection.totalQuantity < 1) errors.tickets = t("error.tickets");
   if (ticketSelection.totalQuantity > 20) errors.tickets = t("error.maxTickets");
   return errors;
@@ -1010,6 +1055,8 @@ async function handleRegistrationSubmit(event) {
 
   const primaryCategory = ticketSelection.tickets.length === 1 ? getCategory(ticketSelection.tickets[0].categoryId) : null;
   const chosenEvent = selectedEvent();
+  const firstTicketEvent = ticketSelection.eventTickets[0] || null;
+  const hasMultipleEvents = new Set(ticketSelection.eventTickets.map((ticket) => ticket.eventId)).size > 1;
   const registration = {
     id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
     confirmation: createConfirmation(),
@@ -1022,15 +1069,15 @@ async function handleRegistrationSubmit(event) {
     gender: data.gender,
     categoryId: primaryCategory?.id || "multiple",
     categoryName: primaryCategory?.name.en || "Multiple categories",
-    eventId: chosenEvent?.id || data.game || "",
-    eventTitle: chosenEvent?.title || "",
-    eventDate: data.eventDate,
-    game: chosenEvent?.game || data.game || "",
-    teamA: chosenEvent?.teamA || "",
-    teamB: chosenEvent?.teamB || "",
-    flagA: chosenEvent?.flagA || "",
-    flagB: chosenEvent?.flagB || "",
-    eventTime: chosenEvent?.time || "",
+    eventId: hasMultipleEvents ? "multiple" : chosenEvent?.id || firstTicketEvent?.eventId || data.game || "",
+    eventTitle: hasMultipleEvents ? "Multiple events" : chosenEvent?.title || firstTicketEvent?.eventTitle || "",
+    eventDate: hasMultipleEvents ? "Multiple dates" : data.eventDate || firstTicketEvent?.eventDate || "",
+    game: hasMultipleEvents ? "Multiple games" : chosenEvent?.game || firstTicketEvent?.game || data.game || "",
+    teamA: hasMultipleEvents ? "" : chosenEvent?.teamA || firstTicketEvent?.teamA || "",
+    teamB: hasMultipleEvents ? "" : chosenEvent?.teamB || firstTicketEvent?.teamB || "",
+    flagA: hasMultipleEvents ? "" : chosenEvent?.flagA || firstTicketEvent?.flagA || "",
+    flagB: hasMultipleEvents ? "" : chosenEvent?.flagB || firstTicketEvent?.flagB || "",
+    eventTime: hasMultipleEvents ? "" : chosenEvent?.time || firstTicketEvent?.eventTime || "",
     tickets: ticketSelection.tickets,
     quantity: ticketSelection.totalQuantity,
     totalQuantity: ticketSelection.totalQuantity,
@@ -1070,12 +1117,10 @@ function initRegistrationPage() {
   renderTicketPicker();
   document.querySelector("#eventDate")?.addEventListener("change", () => {
     populateEventControls();
-    selectedTickets = {};
     renderTicketPicker();
     updateTotal();
   });
   document.querySelector("#game")?.addEventListener("change", () => {
-    selectedTickets = {};
     renderTicketPicker();
     updateTotal();
   });

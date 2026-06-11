@@ -83,13 +83,23 @@ function renderStats(registrations) {
 function renderTicketSummary(registration) {
   if (!registration.tickets?.length) return escapeHtml(registration.categoryName || "");
   return registration.tickets
-    .map((ticket) => `${escapeHtml(ticket.categoryName)} x${Number(ticket.quantity || 0)}`)
+    .map((ticket) => {
+      const eventText = [ticket.eventDate, ticket.game || ticket.eventTitle, ticket.eventTime].filter(Boolean).join(" - ");
+      return `${escapeHtml(ticket.categoryName)} x${Number(ticket.quantity || 0)}${
+        eventText ? `<br><span class="cell-muted">${escapeHtml(eventText)}</span>` : ""
+      }`;
+    })
     .join("<br>");
 }
 
 function renderTicketText(registration) {
   if (!registration.tickets?.length) return registration.categoryName || "";
-  return registration.tickets.map((ticket) => `${ticket.categoryName} x${ticket.quantity}`).join(", ");
+  return registration.tickets
+    .map((ticket) => {
+      const eventText = [ticket.eventDate, ticket.game || ticket.eventTitle, ticket.eventTime].filter(Boolean).join(" - ");
+      return `${ticket.categoryName} x${ticket.quantity}${eventText ? ` (${eventText})` : ""}`;
+    })
+    .join(", ");
 }
 
 function registrationEventText(registration) {
@@ -933,9 +943,10 @@ function eventFromForm() {
   const date = document.querySelector("#eventDateAdmin").value;
   const game = document.querySelector("#eventGame").value.trim();
   const explicitId = document.querySelector("#eventId").value;
+  const slug = (game || title || "match").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const id =
     explicitId ||
-    `${date || "event"}-${(game || title || "match").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+    `${date || "event"}-${slug || "match"}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   return {
     id,
     title,
