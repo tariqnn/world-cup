@@ -686,6 +686,10 @@ function setLinkHref(selector, value) {
   if (node && value) node.setAttribute("href", value);
 }
 
+function plainLocation(value) {
+  return String(value || "").replace(/^Location:\s*/i, "").trim();
+}
+
 function updateSeo() {
   const content = getSiteContent();
   const title = content.heroTitle ? `${content.heroTitle} | Nashama Arena` : "Nashama Arena Registration";
