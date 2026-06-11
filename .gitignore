@@ -1,0 +1,9 @@
+.firebase/
+firebase-debug.log
+*.log
+.screenshots-*.png
+.server.pid
+node_modules/
+dist/
+build/
+.github-push-world-cup/

@@ -1,0 +1,105 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /registrations/{registrationId} {
+      allow create: if isValidRegistration();
+      // Temporary for local admin/testing. Replace with authenticated admin rules before public admin launch.
+      allow read, update, delete: if true;
+    }
+
+    match /qrPasses/{passId} {
+      // Temporary for mobile admin/testing. Replace with authenticated admin rules before production.
+      allow read, create, update, delete: if true;
+    }
+
+    match /scanRecords/{recordId} {
+      // Temporary for mobile/admin testing. Replace with authenticated admin rules before production.
+      allow read, create, update, delete: if true;
+    }
+
+    match /siteContent/{contentId} {
+      // Temporary for local admin/testing. Replace with authenticated admin rules before production.
+      allow read, create, update, delete: if true;
+    }
+
+    match /events/{eventId} {
+      // Temporary for local admin/testing. Replace with authenticated admin rules before production.
+      allow read, create, update, delete: if true;
+    }
+
+    function isValidRegistration() {
+      return request.resource.data.keys().hasOnly([
+        'id',
+        'confirmation',
+        'passCode',
+        'fullName',
+        'email',
+        'phone',
+        'phoneCountryCode',
+        'phoneNational',
+        'gender',
+        'categoryId',
+        'categoryName',
+        'eventId',
+        'eventTitle',
+        'eventDate',
+        'eventTime',
+        'game',
+        'teamA',
+        'teamB',
+        'flagA',
+        'flagB',
+        'tickets',
+        'quantity',
+        'totalQuantity',
+        'price',
+        'total',
+        'paid',
+        'paidStatus',
+        'notes',
+        'status',
+        'createdAt'
+      ])
+      && request.resource.data.fullName is string
+      && request.resource.data.email is string
+      && request.resource.data.phone is string
+      && request.resource.data.phoneCountryCode in [
+        '+962',
+        '+971',
+        '+966',
+        '+974',
+        '+965',
+        '+973',
+        '+968',
+        '+20',
+        '+1',
+        '+44'
+      ]
+      && request.resource.data.phoneNational is string
+      && request.resource.data.gender in [
+        'male',
+        'female'
+      ]
+      && request.resource.data.categoryId in [
+        'general-ticket',
+        'vip-class',
+        'class-a',
+        'class-b',
+        'vip-support',
+        'support-a',
+        'support-b',
+        'multiple'
+      ]
+      && request.resource.data.tickets is list
+      && request.resource.data.quantity is int
+      && request.resource.data.totalQuantity is int
+      && request.resource.data.quantity >= 1
+      && request.resource.data.quantity <= 20
+      && request.resource.data.totalQuantity >= 1
+      && request.resource.data.totalQuantity <= 20
+      && request.resource.data.total is number
+      && request.resource.data.status == 'New';
+    }
+  }
+}

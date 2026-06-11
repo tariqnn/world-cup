@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Register for Nashama Arena at Bikers Village, a premium World Cup fan event with VIP, theatre seating, and support categories."
+    />
+    <meta name="theme-color" content="#2b0713" />
+    <title>Nashama Arena Registration</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#registration" data-i18n="skip.registration">Skip to registration</a>
+
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="Nashama Arena home">
+        <img src="assets/nashama-logo.jpg" alt="Nashama Arena logo" />
+        <span data-i18n="brand.public">Nashama Arena</span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="#categories" data-i18n="nav.categories">Categories</a>
+        <a href="#events">Events</a>
+        <a href="#experience" data-i18n="nav.experience">Experience</a>
+        <a href="#location">Location</a>
+        <a href="#registration" data-i18n="nav.register">Register</a>
+        <button class="language-toggle" type="button" data-lang-toggle>العربية</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero reveal">
+        <div class="hero__content">
+          <p class="eyebrow" data-i18n="hero.eyebrow" data-content="heroEyebrow">World Cup fan event at Bikers Village</p>
+          <h1 data-i18n="hero.title" data-content="heroTitle">Register for Nashama Arena access</h1>
+          <p class="hero__lead" data-i18n="hero.lead" data-content="heroLead">
+            Secure theatre seating, VIP front-zone access, or charity support passes for the World Cup fan experience.
+          </p>
+          <div class="event-strip" aria-label="Event details">
+            <span data-i18n="event.date" data-content="eventDate">Date: November 21, 2026</span>
+            <span data-i18n="event.time" data-content="eventTime">Time: 7:00 PM</span>
+            <span data-i18n="event.location" data-content="eventLocation">Location: Bikers Village</span>
+          </div>
+          <a class="hero-event-box" href="#events">
+            <span>Upcoming events</span>
+            <strong>Check match nights</strong>
+            <small>Choose a date and game before buying.</small>
+          </a>
+          <div class="hero__actions">
+            <a class="button button--primary" href="#registration" data-i18n="hero.cta">Start registration</a>
+            <a class="button button--ghost" href="#categories" data-i18n="hero.secondary">View categories</a>
+            <a class="button button--ghost" href="#events">Events</a>
+          </div>
+        </div>
+
+        <aside class="hero-pass" aria-label="VIP pass preview">
+          <img src="assets/vip-pass.jpg" alt="Nashama Arena VIP pass preview" data-content-image="heroImage" />
+        </aside>
+      </section>
+
+      <section class="partners" aria-label="Event partners">
+        <span data-i18n="partners.hosted">Hosted with</span>
+        <img src="assets/bikers-village.png" alt="Bikers Village logo" />
+        <img src="assets/flow-logo.jpg" alt="Flow creative hub logo" />
+      </section>
+
+      <section id="categories" class="section reveal">
+        <div class="section-heading">
+          <p class="eyebrow" data-i18n="categories.eyebrow">Registration categories</p>
+          <h2 data-i18n="categories.title">Choose the access level that fits your guest</h2>
+          <p data-i18n="categories.copy">
+            Categories are based on the ticket reference: VIP, theatre seating classes, and support contribution entries.
+          </p>
+        </div>
+        <div class="category-grid" id="categoryGrid"></div>
+      </section>
+
+      <section id="events" class="section reveal">
+        <div class="section-heading">
+          <p class="eyebrow">Event calendar</p>
+          <h2>Choose a date and game</h2>
+          <p>Every event can have a photo, teams, flags, date, time, and price edited from admin.</p>
+        </div>
+        <div class="events-grid" id="eventsGrid"></div>
+      </section>
+
+      <section id="experience" class="section section--split reveal">
+        <div>
+          <p class="eyebrow" data-i18n="experience.eyebrow">Venue experience</p>
+          <h2 data-i18n="experience.title" data-content="experienceTitle">Big-screen football, seating zones, and family areas</h2>
+          <p data-i18n="experience.copy" data-content="experienceCopy">
+            The event layout includes a main tent, large screens, sponsor and market booths, food and beverage, and a
+            dedicated children's play area.
+          </p>
+          <div class="feature-list">
+            <span data-i18n="feature.tent" data-content="featureTent">Main tent and theatre seating</span>
+            <span data-i18n="feature.vip" data-content="featureVip">VIP front-zone access</span>
+            <span data-i18n="feature.children" data-content="featureChildren">Children's activities and selfie booth</span>
+            <span data-i18n="feature.checkin" data-content="featureCheckin">Digital confirmation for staff check-in</span>
+          </div>
+        </div>
+        <div class="image-grid">
+          <img src="assets/venue-layout.jpg" alt="Venue layout render" loading="lazy" data-content-image="photo1" />
+          <img src="assets/entrance-zone.jpg" alt="Entrance zone render" loading="lazy" data-content-image="photo2" />
+          <img src="assets/kids-activity.png" alt="Children activity area preview" loading="lazy" data-content-image="photo3" />
+        </div>
+      </section>
+
+      <section id="location" class="section map-section reveal">
+        <div class="section-heading">
+          <p class="eyebrow">Location</p>
+          <h2>Bikers Village, Airport Road</h2>
+          <p>Open Google Maps for directions to Bikers Village Airport Rd., Amman, Jordan.</p>
+          <a
+            class="button button--primary"
+            data-map-link
+            href="https://www.google.com/maps/search/?api=1&query=Bikers%20Village%20Airport%20Rd.%2C%20Amman%2C%20Jordan"
+            target="_blank"
+            rel="noreferrer"
+          >Open Google Maps</a>
+        </div>
+        <iframe
+          data-map-frame
+          title="Bikers Village Airport Road map"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          src="https://www.google.com/maps?q=Bikers%20Village%20Airport%20Rd.%2C%20Amman%2C%20Jordan&output=embed"
+        ></iframe>
+      </section>
+
+      <section id="registration" class="section registration-section reveal">
+        <div class="registration-copy">
+          <p class="eyebrow" data-i18n="register.eyebrow">Register now</p>
+          <h2 data-i18n="register.title">Guest details</h2>
+          <p data-i18n="register.copy">
+            Submit the form once per guest or group. The system captures category, ticket count, total value, and
+            current handling status.
+          </p>
+          <img src="assets/ticket-preview.jpg" alt="Nashama Arena ticket design preview" loading="lazy" data-content-image="ticketPreviewImage" />
+        </div>
+
+        <form class="registration-form" id="registrationForm" novalidate>
+          <div class="form-row">
+            <label for="fullName" data-i18n="form.fullName">Full name *</label>
+            <input id="fullName" name="fullName" autocomplete="name" required />
+            <p class="field-error" id="fullNameError"></p>
+          </div>
+
+          <div class="form-row form-row--two">
+            <div>
+              <label for="email" data-i18n="form.email">Email *</label>
+              <input id="email" name="email" type="email" autocomplete="email" required />
+              <p class="field-error" id="emailError"></p>
+            </div>
+            <div>
+              <label for="phone" data-i18n="form.phone">Phone *</label>
+              <div class="phone-input">
+                <select id="countryCode" name="countryCode" aria-label="Country code">
+                  <option value="+962" selected>Jordan +962</option>
+                  <option value="+971">UAE +971</option>
+                  <option value="+966">Saudi Arabia +966</option>
+                  <option value="+974">Qatar +974</option>
+                  <option value="+965">Kuwait +965</option>
+                  <option value="+973">Bahrain +973</option>
+                  <option value="+968">Oman +968</option>
+                  <option value="+20">Egypt +20</option>
+                  <option value="+1">USA/Canada +1</option>
+                  <option value="+44">UK +44</option>
+                </select>
+                <input id="phone" name="phone" type="tel" autocomplete="tel-national" required />
+              </div>
+              <p class="field-error" id="phoneError"></p>
+            </div>
+          </div>
+
+          <div class="form-row form-row--two">
+            <div>
+              <label for="eventDate">Event date *</label>
+              <input id="eventDate" name="eventDate" type="date" required />
+              <p class="field-error" id="eventDateError"></p>
+            </div>
+            <div>
+              <label for="game">Game *</label>
+              <select id="game" name="game" required>
+                <option value="">Select a game</option>
+              </select>
+              <p class="field-error" id="gameError"></p>
+            </div>
+          </div>
+
+          <fieldset class="ticket-picker">
+            <legend data-i18n="form.ticketSelection">Ticket selection *</legend>
+            <div class="ticket-picker__list" id="ticketPicker"></div>
+            <p class="field-error" id="ticketsError"></p>
+          </fieldset>
+
+          <div class="form-row">
+            <label for="gender" data-i18n="form.gender">Gender *</label>
+            <select id="gender" name="gender" required>
+              <option value="" data-i18n="form.genderPlaceholder">Select gender</option>
+              <option value="male" data-i18n="gender.male">Male</option>
+              <option value="female" data-i18n="gender.female">Female</option>
+            </select>
+            <p class="field-error" id="genderError"></p>
+          </div>
+
+          <div class="form-row">
+            <label for="notes" data-i18n="form.notes">Notes</label>
+            <textarea
+              id="notes"
+              name="notes"
+              rows="4"
+              data-i18n-placeholder="form.notesPlaceholder"
+              placeholder="Dietary needs, accessibility support, group name..."
+            ></textarea>
+          </div>
+
+          <div class="price-panel" aria-live="polite">
+            <span data-i18n="form.estimated">Estimated total</span>
+            <strong id="totalPrice">35.00 JOD</strong>
+          </div>
+
+          <button class="button button--primary button--full" type="submit" data-i18n="form.submit">
+            Submit registration
+          </button>
+          <div class="success-panel" id="successPanel" hidden></div>
+        </form>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span data-i18n="footer.public">Nashama Arena at Bikers Village</span>
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

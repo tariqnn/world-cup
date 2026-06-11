@@ -1,0 +1,16 @@
+{
+  "name": "Nashama Arena Registration",
+  "short_name": "Nashama",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff9ec",
+  "theme_color": "#2b0713",
+  "icons": [
+    {
+      "src": "assets/nashama-logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}

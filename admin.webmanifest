@@ -1,0 +1,17 @@
+{
+  "name": "Nashama Admin",
+  "short_name": "Nashama Admin",
+  "start_url": "/admin.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fff7e7",
+  "theme_color": "#1a050c",
+  "icons": [
+    {
+      "src": "assets/nashama-logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}

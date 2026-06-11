@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nashama Arena Admin</title>
+    <meta name="theme-color" content="#1a050c" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Nashama Admin" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="admin.webmanifest" />
+    <link rel="apple-touch-icon" href="assets/nashama-logo.jpg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="admin-page">
+    <a class="skip-link" href="#registrationsTable">Skip to table</a>
+
+    <header class="site-header site-header--admin">
+      <a class="brand" href="index.html" aria-label="Nashama Arena registration">
+        <img src="assets/nashama-logo.jpg" alt="Nashama Arena logo" />
+        <span>Nashama Admin</span>
+      </a>
+      <nav class="main-nav" aria-label="Admin navigation">
+        <a href="index.html">Registration site</a>
+        <button class="nav-button" id="exportCsv" type="button">Export CSV</button>
+      </nav>
+    </header>
+
+    <main class="admin-shell">
+      <section class="admin-hero">
+        <div>
+          <p class="eyebrow">Registration handling</p>
+          <h1>Admin dashboard</h1>
+          <p>
+            Review registered guests, update handling status, search by contact details,
+            and export a CSV for operations.
+          </p>
+        </div>
+        <img src="assets/wristband.jpg" alt="Nashama Arena wristband artwork" />
+      </section>
+
+      <section class="stats-grid" aria-label="Registration statistics">
+        <article>
+          <span>Total registrations</span>
+          <strong id="statRegistrations">0</strong>
+        </article>
+        <article>
+          <span>Total tickets</span>
+          <strong id="statTickets">0</strong>
+        </article>
+        <article>
+          <span>Estimated value</span>
+          <strong id="statRevenue">0.00 JOD</strong>
+        </article>
+        <article>
+          <span>VIP tickets</span>
+          <strong id="statVip">0</strong>
+        </article>
+      </section>
+
+      <div class="admin-quick-actions" aria-label="Admin quick actions">
+        <a href="#guestListPanel">Guests</a>
+        <a href="#eventSettings">Events and tickets</a>
+        <a href="#websiteSettings">Website</a>
+      </div>
+
+      <details class="admin-panel content-admin-panel" id="websiteSettings">
+        <summary class="admin-summary">
+          <span>
+            <strong>Website settings</strong>
+            <small>Hero text, ticket preview, photos, and map.</small>
+          </span>
+          <span>Edit</span>
+        </summary>
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Website content</p>
+            <h2>Hero, ticket, photos, and venue text</h2>
+          </div>
+          <button class="button button--primary" id="saveContentSettings" type="button">Save website content</button>
+        </div>
+        <div class="content-editor-grid" id="contentEditor">
+          <label>Hero eyebrow<input data-content-field="heroEyebrow" /></label>
+          <label>Hero title<input data-content-field="heroTitle" /></label>
+          <label>Hero lead<textarea data-content-field="heroLead" rows="3"></textarea></label>
+          <label>Date text<input data-content-field="eventDate" /></label>
+          <label>Time text<input data-content-field="eventTime" /></label>
+          <label>Location text<input data-content-field="eventLocation" /></label>
+          <label>Ticket name<input data-content-field="ticketName" /></label>
+          <label>Ticket price<input data-content-field="ticketPrice" type="number" min="0" step="0.01" /></label>
+          <label>Ticket description<textarea data-content-field="ticketDescription" rows="3"></textarea></label>
+          <label>Ticket access label<input data-content-field="ticketAccess" /></label>
+          <label>Hero ticket image URL<input data-content-field="heroImage" /></label>
+          <label>Registration ticket preview URL<input data-content-field="ticketPreviewImage" /></label>
+          <label>Experience title<input data-content-field="experienceTitle" /></label>
+          <label>Experience copy<textarea data-content-field="experienceCopy" rows="3"></textarea></label>
+          <label>Feature 1<input data-content-field="featureTent" /></label>
+          <label>Feature 2<input data-content-field="featureVip" /></label>
+          <label>Feature 3<input data-content-field="featureChildren" /></label>
+          <label>Feature 4<input data-content-field="featureCheckin" /></label>
+          <label>Photo 1 URL<input data-content-field="photo1" /></label>
+          <label>Photo 2 URL<input data-content-field="photo2" /></label>
+          <label>Photo 3 URL<input data-content-field="photo3" /></label>
+          <label>Google Maps URL<input data-content-field="mapUrl" /></label>
+        </div>
+        <p class="admin-save-state" id="contentSaveState"></p>
+      </details>
+
+      <details class="admin-panel events-admin-panel" id="eventSettings">
+        <summary class="admin-summary">
+          <span>
+            <strong>Events and tickets</strong>
+            <small>Add match dates, prices, images, and flags.</small>
+          </span>
+          <span>Edit</span>
+        </summary>
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Event schedule</p>
+            <h2>Add dates, games, images, and flags</h2>
+          </div>
+          <button class="button button--primary" id="saveEvent" type="button">Save event</button>
+        </div>
+        <div class="event-editor-grid">
+          <input type="hidden" id="eventId" />
+          <label>Title<input id="eventTitle" placeholder="Quarter-final night" /></label>
+          <label>Date<input id="eventDateAdmin" type="date" /></label>
+          <label>Time<input id="eventTimeAdmin" placeholder="7:00 PM" /></label>
+          <label>Game<input id="eventGame" placeholder="Jordan vs Brazil" /></label>
+          <label>Team A<input id="eventTeamA" placeholder="Jordan" /></label>
+          <label>Flag A ISO<input id="eventFlagA" maxlength="2" placeholder="JO" /></label>
+          <label>Team B<input id="eventTeamB" placeholder="Brazil" /></label>
+          <label>Flag B ISO<input id="eventFlagB" maxlength="2" placeholder="BR" /></label>
+          <label>Price<input id="eventPrice" type="number" min="0" step="0.01" /></label>
+          <label>Image URL<input id="eventImage" placeholder="assets/match-night.jpg" /></label>
+          <label class="span-2">Description<textarea id="eventDescription" rows="3"></textarea></label>
+          <label class="checkbox-row"><input id="eventActive" type="checkbox" checked /> Active on website</label>
+        </div>
+        <p class="admin-save-state" id="eventSaveState"></p>
+        <div class="admin-events-list" id="adminEventsList"></div>
+      </details>
+
+      <section class="admin-panel registrations-admin-panel" id="guestListPanel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Guest list</p>
+            <h2>Registered people</h2>
+          </div>
+          <button class="button button--danger" id="clearAll" type="button">Clear all</button>
+        </div>
+
+        <div class="filters" aria-label="Registration filters">
+          <label>
+            Search
+            <input id="searchInput" type="search" placeholder="Name, email, phone, confirmation..." />
+          </label>
+          <label>
+            Category
+            <select id="categoryFilter">
+              <option value="all">All categories</option>
+            </select>
+          </label>
+          <label>
+            Status
+            <select id="statusFilter">
+              <option value="all">All statuses</option>
+              <option value="New">New</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Checked in">Checked in</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="table-wrap">
+          <table id="registrationsTable">
+            <thead>
+              <tr>
+                <th>Confirmation</th>
+                <th>Guest</th>
+                <th>Category</th>
+                <th>Tickets</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Registered</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="registrationRows"></tbody>
+          </table>
+          <div class="empty-state" id="emptyState" hidden>
+            No registrations match the current filters.
+          </div>
+        </div>
+        <div class="mobile-admin-list" id="mobileAdminList" aria-label="Mobile registration cards"></div>
+      </section>
+
+      <details class="admin-panel scan-records-panel" id="scanRecordsPanel">
+        <summary class="admin-summary">
+          <span>
+            <strong>QR scan records</strong>
+            <small>Latest gate scan history.</small>
+          </span>
+          <span>View</span>
+        </summary>
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Gate audit</p>
+            <h2>QR scan records</h2>
+          </div>
+          <button class="button button--primary" id="scanAnyQr" type="button">Scan any QR</button>
+        </div>
+        <div class="scan-records" id="scanRecords">No scans recorded yet.</div>
+      </details>
+    </main>
+
+    <div class="scanner-modal" id="scannerModal" hidden>
+      <div class="scanner-dialog" role="dialog" aria-modal="true" aria-labelledby="scannerTitle">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">QR scanner</p>
+            <h2 id="scannerTitle">Scan ticket</h2>
+            <p id="scannerScope">Point the camera at a Nashama QR.</p>
+          </div>
+          <button class="button button--danger" id="closeScanner" type="button">Close</button>
+        </div>
+        <div id="qrReader"></div>
+        <div class="scan-result" id="scanResult"></div>
+      </div>
+    </div>
+
+    <div class="app-modal app-modal--sheet" id="pdfModal" hidden>
+      <div class="app-sheet" role="dialog" aria-modal="true" aria-labelledby="pdfModalTitle">
+        <div class="app-sheet__handle" aria-hidden="true"></div>
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Tickets PDF</p>
+            <h2 id="pdfModalTitle">PDF ready</h2>
+            <p id="pdfModalDetails">Open or share the generated tickets.</p>
+          </div>
+          <button class="button button--danger" id="closePdfModal" type="button">Close</button>
+        </div>
+        <div class="pdf-actions">
+          <button class="button button--primary" id="sharePdfFile" type="button">Share PDF</button>
+          <button class="button" id="openPdfFile" type="button">Open PDF</button>
+          <button class="button" id="downloadPdfFile" type="button">Download</button>
+          <button class="button" id="messagePdfGuest" type="button">WhatsApp guest</button>
+        </div>
+        <p class="sheet-note">
+          On iPhone, tap Share PDF and choose WhatsApp. If WhatsApp does not attach the file,
+          tap Open PDF, then use the iOS share button from the PDF screen.
+        </p>
+      </div>
+    </div>
+
+    <div class="app-modal app-modal--install" id="installHelpModal" hidden>
+      <div class="app-sheet install-sheet" role="dialog" aria-modal="true" aria-labelledby="installHelpTitle">
+        <div class="app-sheet__handle" aria-hidden="true"></div>
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">iPhone app mode</p>
+            <h2 id="installHelpTitle">Add Admin to Home Screen</h2>
+          </div>
+          <button class="button button--danger" id="closeInstallHelp" type="button">Close</button>
+        </div>
+        <div class="install-steps">
+          <p>For iPhone, open this page in <strong>Safari</strong>. Other browsers cannot install it correctly.</p>
+          <ol>
+            <li>Tap the Share button in Safari.</li>
+            <li>Scroll and tap <strong>Add to Home Screen</strong>.</li>
+            <li>Keep the name <strong>Nashama Admin</strong>, then tap <strong>Add</strong>.</li>
+            <li>Open it from the new icon for the app-style admin.</li>
+          </ol>
+        </div>
+        <button class="button button--primary button--full" id="installHelpDone" type="button">Got it</button>
+      </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>
