@@ -621,6 +621,7 @@ function activeEvents() {
       title: game.game || `${game.teamA || "Team A"} vs ${game.teamB || "Team B"}`,
       date: game.date || "",
       time: game.time || "",
+      group: game.group || "",
       game: game.game || `${game.teamA || ""} vs ${game.teamB || ""}`.trim(),
       teamA: game.teamA || "",
       teamB: game.teamB || "",
@@ -815,7 +816,7 @@ function renderEvents() {
               <span>${event.time || ""}</span>
             </div>
             <h3>${event.title || event.game || "Match night"}</h3>
-            <p>${event.description || ""}</p>
+            <p>${event.description || event.group || ""}</p>
             <div class="game-line">
               <span>${flagEmoji(event.flagA)} ${event.teamA || ""}</span>
               <strong>vs</strong>

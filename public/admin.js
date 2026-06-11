@@ -16,6 +16,7 @@ let scannerStarting = false;
 let currentPdf = null;
 let adminEventsCache = [];
 let adminGamesCache = [];
+let editingGameGroup = "";
 
 const COUNTRY_OPTIONS = [
   ["DZ", "Algeria"],
@@ -1303,6 +1304,7 @@ function clearGameForm() {
     const node = document.querySelector(`#${id}`);
     if (node) node.value = "";
   });
+  editingGameGroup = "";
   document.querySelector("#gameActive").checked = true;
 }
 
@@ -1312,6 +1314,7 @@ function fillGameForm(game = {}) {
   document.querySelector("#gameTimeAdmin").value = timeInputValue(game.time) || game.time || "";
   document.querySelector("#gameTeamA").value = countryCodeFromEventTeam(game, "A");
   document.querySelector("#gameTeamB").value = countryCodeFromEventTeam(game, "B");
+  editingGameGroup = game.group || "";
   updateGameGameFromTeams(game.game || "");
   document.querySelector("#gameActive").checked = game.active !== false;
 }
@@ -1336,6 +1339,7 @@ function gameFromForm() {
     flagA: document.querySelector("#gameTeamA").value || "",
     teamB: document.querySelector("#gameTeamB").value ? selectedTeamName("#gameTeamB") : "",
     flagB: document.querySelector("#gameTeamB").value || "",
+    group: editingGameGroup,
     active: document.querySelector("#gameActive").checked,
   };
 }
@@ -1373,6 +1377,7 @@ function renderAdminGames() {
               <div>
                 <strong>${flagEmoji(game.flagA)} ${escapeHtml(game.game || "Game")}</strong>
                 <span>${escapeHtml(game.date || "")} ${escapeHtml(game.time || "")}</span>
+                ${game.group ? `<span>${escapeHtml(game.group)}</span>` : ""}
                 <span>${escapeHtml(game.teamA || "")} vs ${escapeHtml(game.teamB || "")}</span>
                 <span>${game.active === false ? "Hidden" : "Active"}</span>
               </div>
