@@ -722,9 +722,11 @@ function populateEventControls() {
   if (!dateInput.value && events[0]?.date) dateInput.value = events[0].date;
   const selectedGame = gameSelect.value;
   const matches = events.filter((event) => !dateInput.value || event.date === dateInput.value);
-  gameSelect.innerHTML = `<option value="">Select a game</option>${matches
-    .map((event) => `<option value="${event.id}">${flagEmoji(event.flagA)} ${event.game || `${event.teamA} vs ${event.teamB}`}</option>`)
-    .join("")}`;
+  gameSelect.innerHTML = matches.length
+    ? `<option value="">Select a game</option>${matches
+        .map((event) => `<option value="${event.id}">${flagEmoji(event.flagA)} ${event.game || `${event.teamA} vs ${event.teamB}`}</option>`)
+        .join("")}`
+    : `<option value="">No games for this date</option>`;
   if (matches.some((event) => event.id === selectedGame)) {
     gameSelect.value = selectedGame;
   } else if (matches[0]) {

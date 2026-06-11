@@ -120,11 +120,11 @@
           <label>Title<input id="eventTitle" placeholder="Quarter-final night" /></label>
           <label>Date<input id="eventDateAdmin" type="date" /></label>
           <label>Time<input id="eventTimeAdmin" type="time" /></label>
-          <label>Game<input id="eventGame" placeholder="Jordan vs Brazil" /></label>
-          <label>Team A<input id="eventTeamA" placeholder="Jordan" /></label>
-          <label>Nation A<input id="eventFlagA" list="countryOptions" placeholder="Jordan or JO" /></label>
-          <label>Team B<input id="eventTeamB" placeholder="Brazil" /></label>
-          <label>Nation B<input id="eventFlagB" list="countryOptions" placeholder="Brazil or BR" /></label>
+          <label>Game<input id="eventGame" placeholder="Auto from teams" readonly /></label>
+          <label>Team A<select id="eventTeamA"></select></label>
+          <input id="eventFlagA" type="hidden" />
+          <label>Team B<select id="eventTeamB"></select></label>
+          <input id="eventFlagB" type="hidden" />
           <label>Price<input id="eventPrice" type="number" min="0" step="0.01" /></label>
           <label>Image<input id="eventImage" placeholder="assets/match-night.jpg" /></label>
           <label class="span-2">Note<textarea id="eventDescription" rows="2"></textarea></label>

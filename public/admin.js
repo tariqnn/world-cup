@@ -542,6 +542,18 @@ function countryLabelFromCode(code) {
   return match ? `${match[1]} (${match[0]})` : normalized;
 }
 
+function countryNameFromCode(code) {
+  const normalized = String(code || "").trim().toUpperCase();
+  const match = COUNTRY_OPTIONS.find(([countryCode]) => countryCode === normalized);
+  return match ? match[1] : "";
+}
+
+function countryCodeFromEventTeam(event = {}, side = "A") {
+  const flagCode = parseCountryCode(event[`flag${side}`]);
+  if (flagCode) return flagCode;
+  return parseCountryCode(event[`team${side}`]);
+}
+
 function parseCountryCode(value) {
   const normalized = String(value || "").trim();
   const parenthesized = normalized.match(/\(([A-Za-z]{2})\)$/);
@@ -555,8 +567,52 @@ function parseCountryCode(value) {
 
 function initCountryOptions() {
   const list = document.querySelector("#countryOptions");
-  if (!list) return;
-  list.innerHTML = COUNTRY_OPTIONS.map(([code, name]) => `<option value="${escapeHtml(`${name} (${code})`)}"></option>`).join("");
+  if (list) {
+    list.innerHTML = COUNTRY_OPTIONS.map(([code, name]) => `<option value="${escapeHtml(`${name} (${code})`)}"></option>`).join("");
+  }
+  ["eventTeamA", "eventTeamB"].forEach((id) => {
+    const select = document.querySelector(`#${id}`);
+    if (!select) return;
+    const currentValue = select.value;
+    const label = id === "eventTeamA" ? "Select team A" : "Select team B";
+    select.innerHTML = `<option value="">${label}</option>${COUNTRY_OPTIONS.map(
+      ([code, name]) => `<option value="${escapeHtml(code)}">${escapeHtml(name)}</option>`
+    ).join("")}`;
+    if ([...select.options].some((option) => option.value === currentValue)) {
+      select.value = currentValue;
+    }
+  });
+  bindEventTeamSelects();
+  updateEventGameFromTeams();
+}
+
+function selectedTeamName(selectId) {
+  const select = document.querySelector(selectId);
+  return select?.selectedOptions?.[0]?.textContent?.trim() || "";
+}
+
+function updateEventGameFromTeams(fallback = "") {
+  const teamASelect = document.querySelector("#eventTeamA");
+  const teamBSelect = document.querySelector("#eventTeamB");
+  const gameInput = document.querySelector("#eventGame");
+  const flagAInput = document.querySelector("#eventFlagA");
+  const flagBInput = document.querySelector("#eventFlagB");
+  if (!teamASelect || !teamBSelect || !gameInput) return;
+
+  const teamA = teamASelect.value ? selectedTeamName("#eventTeamA") : "";
+  const teamB = teamBSelect.value ? selectedTeamName("#eventTeamB") : "";
+  if (flagAInput) flagAInput.value = teamASelect.value || "";
+  if (flagBInput) flagBInput.value = teamBSelect.value || "";
+  gameInput.value = teamA && teamB ? `${teamA} vs ${teamB}` : fallback;
+}
+
+function bindEventTeamSelects() {
+  ["eventTeamA", "eventTeamB"].forEach((id) => {
+    const select = document.querySelector(`#${id}`);
+    if (!select || select.dataset.bound === "true") return;
+    select.dataset.bound = "true";
+    select.addEventListener("change", () => updateEventGameFromTeams());
+  });
 }
 
 async function loadImageDataUrl(src) {
@@ -1077,11 +1133,9 @@ function fillEventForm(event = {}) {
   document.querySelector("#eventTitle").value = event.title || "";
   document.querySelector("#eventDateAdmin").value = event.date || "";
   document.querySelector("#eventTimeAdmin").value = timeInputValue(event.time) || event.time || "";
-  document.querySelector("#eventGame").value = event.game || "";
-  document.querySelector("#eventTeamA").value = event.teamA || "";
-  document.querySelector("#eventFlagA").value = countryLabelFromCode(event.flagA);
-  document.querySelector("#eventTeamB").value = event.teamB || "";
-  document.querySelector("#eventFlagB").value = countryLabelFromCode(event.flagB);
+  document.querySelector("#eventTeamA").value = countryCodeFromEventTeam(event, "A");
+  document.querySelector("#eventTeamB").value = countryCodeFromEventTeam(event, "B");
+  updateEventGameFromTeams(event.game || "");
   document.querySelector("#eventPrice").value = event.price ?? "";
   document.querySelector("#eventImage").value = event.image || "";
   document.querySelector("#eventDescription").value = event.description || "";
@@ -1091,7 +1145,8 @@ function fillEventForm(event = {}) {
 function eventFromForm() {
   const title = document.querySelector("#eventTitle").value.trim();
   const date = document.querySelector("#eventDateAdmin").value;
-  const game = document.querySelector("#eventGame").value.trim();
+  updateEventGameFromTeams();
+  const game = document.querySelector("#eventGame").value.trim() || title;
   const explicitId = document.querySelector("#eventId").value;
   const slug = (game || title || "match").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const id =
@@ -1105,10 +1160,10 @@ function eventFromForm() {
       ? formatTimeDisplay(document.querySelector("#eventTimeAdmin").value).replace(/^Time:\s*/i, "")
       : "",
     game,
-    teamA: document.querySelector("#eventTeamA").value.trim(),
-    flagA: parseCountryCode(document.querySelector("#eventFlagA").value),
-    teamB: document.querySelector("#eventTeamB").value.trim(),
-    flagB: parseCountryCode(document.querySelector("#eventFlagB").value),
+    teamA: document.querySelector("#eventTeamA").value ? selectedTeamName("#eventTeamA") : "",
+    flagA: document.querySelector("#eventTeamA").value || "",
+    teamB: document.querySelector("#eventTeamB").value ? selectedTeamName("#eventTeamB") : "",
+    flagB: document.querySelector("#eventTeamB").value || "",
     price: Number(document.querySelector("#eventPrice").value || getSiteContent().ticketPrice || 0),
     image: document.querySelector("#eventImage").value.trim() || "assets/match-night.jpg",
     description: document.querySelector("#eventDescription").value.trim(),
