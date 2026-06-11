@@ -564,9 +564,38 @@ function initFirebaseStore() {
 
 function activeEvents() {
   const events = eventsCache.length ? eventsCache : DEFAULT_EVENTS;
-  return events
+  const visibleEvents = events
     .filter((event) => event.active !== false)
     .sort((a, b) => `${a.date || ""} ${a.time || ""}`.localeCompare(`${b.date || ""} ${b.time || ""}`));
+  const eventKeys = new Set(
+    visibleEvents.map((event) => `${event.gameId || ""}|${event.date || ""}|${event.game || ""}`.toLowerCase())
+  );
+  const gameEvents = activeGames()
+    .filter((game) => {
+      const key = `${game.id || ""}|${game.date || ""}|${game.game || ""}`.toLowerCase();
+      const dateGameKey = `|${game.date || ""}|${game.game || ""}`.toLowerCase();
+      return !eventKeys.has(key) && !eventKeys.has(dateGameKey);
+    })
+    .map((game) => ({
+      id: `game-${game.id}`,
+      gameId: game.id,
+      title: game.game || `${game.teamA || "Team A"} vs ${game.teamB || "Team B"}`,
+      date: game.date || "",
+      time: game.time || "",
+      game: game.game || `${game.teamA || ""} vs ${game.teamB || ""}`.trim(),
+      teamA: game.teamA || "",
+      teamB: game.teamB || "",
+      flagA: game.flagA || "",
+      flagB: game.flagB || "",
+      price: Number(getSiteContent().ticketPrice || DEFAULT_SITE_CONTENT.ticketPrice),
+      image: getSiteContent().ticketPreviewImage || "assets/match-night.jpg",
+      description: game.date ? "Match ticket available from the registration form." : "",
+      active: game.active !== false,
+      source: "game",
+    }));
+  return [...visibleEvents, ...gameEvents].sort((a, b) =>
+    `${a.date || ""} ${a.time || ""}`.localeCompare(`${b.date || ""} ${b.time || ""}`)
+  );
 }
 
 function activeGames() {
@@ -1080,7 +1109,7 @@ function getTicketSelection() {
         categoryId: category.id,
         categoryName: category.name.en,
         eventId: event?.id || "",
-        gameId: event?.id || "",
+        gameId: event?.gameId || event?.id || "",
         eventTitle: event?.title || "",
         eventDate: event?.date || "",
         eventTime: event?.time || "",
