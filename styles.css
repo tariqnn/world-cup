@@ -516,50 +516,71 @@ h3 {
 }
 
 .game-date-filters {
-  display: flex;
-  gap: 0.65rem;
-  margin-top: 1.5rem;
-  overflow-x: auto;
-  padding-bottom: 0.35rem;
-  scroll-snap-type: x proximity;
-}
-
-.game-date-filters button {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--maroon-900);
-  cursor: pointer;
   display: grid;
-  flex: 0 0 auto;
-  gap: 0.15rem;
-  min-height: 56px;
-  min-width: 122px;
-  padding: 0.65rem 0.85rem;
-  scroll-snap-align: start;
-  text-align: left;
+  margin-top: 1.5rem;
 }
 
-.game-date-filters button[aria-pressed="true"] {
-  background: var(--maroon-800);
-  border-color: var(--maroon-800);
+.game-date-picker {
+  background:
+    linear-gradient(135deg, rgba(77, 11, 34, 0.96), rgba(111, 17, 49, 0.94)),
+    radial-gradient(circle at top right, rgba(213, 166, 66, 0.36), transparent 12rem);
+  border: 1px solid rgba(213, 166, 66, 0.32);
+  border-radius: calc(var(--radius) + 8px);
+  box-shadow: 0 18px 42px rgba(35, 7, 17, 0.16);
   color: #fff;
+  display: grid;
+  gap: 0.55rem;
+  max-width: 540px;
+  padding: 0.9rem;
 }
 
-.game-date-filters span,
-.game-date-filters strong {
-  display: block;
-  line-height: 1.1;
+.game-date-picker__label {
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.game-date-filters span {
+.game-date-picker__control {
+  position: relative;
+}
+
+.game-date-picker__control::after {
+  border-bottom: 2px solid var(--maroon-900);
+  border-right: 2px solid var(--maroon-900);
+  content: "";
+  height: 0.55rem;
+  pointer-events: none;
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-62%) rotate(45deg);
+  width: 0.55rem;
+}
+
+.game-date-picker select {
+  appearance: none;
+  background: #fffaf0;
+  border: 1px solid rgba(213, 166, 66, 0.55);
+  border-radius: var(--radius);
+  color: var(--maroon-950);
+  cursor: pointer;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 900;
+  min-height: 58px;
+  padding: 0.9rem 2.75rem 0.9rem 1rem;
+  width: 100%;
+}
+
+.game-date-picker select:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 3px;
+}
+
+.game-date-picker small {
+  color: rgba(255, 255, 255, 0.78);
   font-weight: 800;
-}
-
-.game-date-filters strong {
-  color: inherit;
-  font-size: 0.82rem;
-  opacity: 0.78;
 }
 
 .event-card {

@@ -847,19 +847,31 @@ function renderGameSchedule() {
   }
 
   if (filters) {
-    filters.innerHTML = dates
-      .map(
-        (date) => `
-          <button type="button" data-game-date="${date}"${date === selectedScheduleDate ? " aria-pressed=\"true\"" : ""}>
-            <span>${formatScheduleDate(date)}</span>
-            <strong>${games.filter((game) => game.date === date).length} games</strong>
-          </button>
-        `
-      )
-      .join("");
-    filters.querySelectorAll("[data-game-date]").forEach((button) => {
-      button.addEventListener("click", () => {
-        selectedScheduleDate = button.dataset.gameDate;
+    const selectedGameCount = games.filter((game) => game.date === selectedScheduleDate).length;
+    filters.innerHTML = `
+      <label class="game-date-picker" for="gameDateSelect">
+        <span class="game-date-picker__label">Match date</span>
+        <span class="game-date-picker__control">
+          <select id="gameDateSelect" aria-label="Select match date">
+            ${dates
+              .map((date) => {
+                const count = games.filter((game) => game.date === date).length;
+                return `<option value="${escapeHtml(date)}"${
+                  date === selectedScheduleDate ? " selected" : ""
+                }>${formatScheduleDate(date)} - ${count} ${count === 1 ? "game" : "games"}</option>`;
+              })
+              .join("")}
+          </select>
+        </span>
+        <small>${selectedGameCount} ${
+      selectedGameCount === 1 ? "game" : "games"
+    } available on ${formatScheduleDate(selectedScheduleDate)}</small>
+      </label>
+    `;
+    const dateSelect = filters.querySelector("#gameDateSelect");
+    if (dateSelect) {
+      dateSelect.addEventListener("change", () => {
+        selectedScheduleDate = dateSelect.value;
         const dateInput = document.querySelector("#eventDate");
         if (dateInput) dateInput.value = selectedScheduleDate;
         populateEventControls();
@@ -867,7 +879,7 @@ function renderGameSchedule() {
         updateTotal();
         renderEvents();
       });
-    });
+    }
   }
 
   const visibleGames = selectedScheduleDate ? games.filter((game) => game.date === selectedScheduleDate) : games;
