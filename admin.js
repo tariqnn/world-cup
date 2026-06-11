@@ -15,6 +15,7 @@ let scannerBusy = false;
 let scannerStarting = false;
 let currentPdf = null;
 let adminEventsCache = [];
+let adminGamesCache = [];
 
 const COUNTRY_OPTIONS = [
   ["AR", "Argentina"],
@@ -570,11 +571,11 @@ function initCountryOptions() {
   if (list) {
     list.innerHTML = COUNTRY_OPTIONS.map(([code, name]) => `<option value="${escapeHtml(`${name} (${code})`)}"></option>`).join("");
   }
-  ["eventTeamA", "eventTeamB"].forEach((id) => {
+  ["eventTeamA", "eventTeamB", "gameTeamA", "gameTeamB"].forEach((id) => {
     const select = document.querySelector(`#${id}`);
     if (!select) return;
     const currentValue = select.value;
-    const label = id === "eventTeamA" ? "Select team A" : "Select team B";
+    const label = id.endsWith("TeamA") ? "Select team A" : "Select team B";
     select.innerHTML = `<option value="">${label}</option>${COUNTRY_OPTIONS.map(
       ([code, name]) => `<option value="${escapeHtml(code)}">${escapeHtml(name)}</option>`
     ).join("")}`;
@@ -584,6 +585,7 @@ function initCountryOptions() {
   });
   bindEventTeamSelects();
   updateEventGameFromTeams();
+  updateGameGameFromTeams();
 }
 
 function selectedTeamName(selectId) {
@@ -613,6 +615,27 @@ function bindEventTeamSelects() {
     select.dataset.bound = "true";
     select.addEventListener("change", () => updateEventGameFromTeams());
   });
+  ["gameTeamA", "gameTeamB"].forEach((id) => {
+    const select = document.querySelector(`#${id}`);
+    if (!select || select.dataset.bound === "true") return;
+    select.dataset.bound = "true";
+    select.addEventListener("change", () => updateGameGameFromTeams());
+  });
+}
+
+function updateGameGameFromTeams(fallback = "") {
+  const teamASelect = document.querySelector("#gameTeamA");
+  const teamBSelect = document.querySelector("#gameTeamB");
+  const gameInput = document.querySelector("#gameGame");
+  const flagAInput = document.querySelector("#gameFlagA");
+  const flagBInput = document.querySelector("#gameFlagB");
+  if (!teamASelect || !teamBSelect || !gameInput) return;
+
+  const teamA = teamASelect.value ? selectedTeamName("#gameTeamA") : "";
+  const teamB = teamBSelect.value ? selectedTeamName("#gameTeamB") : "";
+  if (flagAInput) flagAInput.value = teamASelect.value || "";
+  if (flagBInput) flagBInput.value = teamBSelect.value || "";
+  gameInput.value = teamA && teamB ? `${teamA} vs ${teamB}` : fallback;
 }
 
 async function loadImageDataUrl(src) {
@@ -1128,6 +1151,100 @@ function clearEventForm() {
   document.querySelector("#eventActive").checked = true;
 }
 
+function clearGameForm() {
+  ["gameId", "gameDateAdmin", "gameTimeAdmin", "gameGame", "gameTeamA", "gameFlagA", "gameTeamB", "gameFlagB"].forEach((id) => {
+    const node = document.querySelector(`#${id}`);
+    if (node) node.value = "";
+  });
+  document.querySelector("#gameActive").checked = true;
+}
+
+function fillGameForm(game = {}) {
+  document.querySelector("#gameId").value = game.id || "";
+  document.querySelector("#gameDateAdmin").value = game.date || "";
+  document.querySelector("#gameTimeAdmin").value = timeInputValue(game.time) || game.time || "";
+  document.querySelector("#gameTeamA").value = countryCodeFromEventTeam(game, "A");
+  document.querySelector("#gameTeamB").value = countryCodeFromEventTeam(game, "B");
+  updateGameGameFromTeams(game.game || "");
+  document.querySelector("#gameActive").checked = game.active !== false;
+}
+
+function gameFromForm() {
+  updateGameGameFromTeams();
+  const date = document.querySelector("#gameDateAdmin").value;
+  const game = document.querySelector("#gameGame").value.trim();
+  const explicitId = document.querySelector("#gameId").value;
+  const slug = (game || "game").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const id =
+    explicitId ||
+    `${date || "game"}-${slug || "match"}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  return {
+    id,
+    date,
+    time: document.querySelector("#gameTimeAdmin").value
+      ? formatTimeDisplay(document.querySelector("#gameTimeAdmin").value).replace(/^Time:\s*/i, "")
+      : "",
+    game,
+    teamA: document.querySelector("#gameTeamA").value ? selectedTeamName("#gameTeamA") : "",
+    flagA: document.querySelector("#gameTeamA").value || "",
+    teamB: document.querySelector("#gameTeamB").value ? selectedTeamName("#gameTeamB") : "",
+    flagB: document.querySelector("#gameTeamB").value || "",
+    active: document.querySelector("#gameActive").checked,
+  };
+}
+
+async function saveGameFromAdmin() {
+  const game = gameFromForm();
+  const state = document.querySelector("#gameSaveState");
+  if (!game.date || !game.game) {
+    state.textContent = "Date + teams required.";
+    return;
+  }
+  try {
+    if (!firestoreEnabled || !firestoreDb) throw new Error("Firestore needed.");
+    await firestoreDb.collection(GAMES_COLLECTION).doc(game.id).set(game, { merge: true });
+    clearGameForm();
+    state.textContent = "Saved.";
+  } catch (error) {
+    state.textContent = error.message || "Not saved.";
+  }
+}
+
+async function deleteGame(id) {
+  if (!window.confirm("Delete this game?")) return;
+  await firestoreDb.collection(GAMES_COLLECTION).doc(id).delete();
+}
+
+function renderAdminGames() {
+  const target = document.querySelector("#adminGamesList");
+  if (!target) return;
+  const games = adminGamesCache.length ? adminGamesCache : activeGames();
+  target.innerHTML = games.length
+    ? games
+        .map(
+          (game) => `
+            <article class="admin-event-row">
+              <div>
+                <strong>${flagEmoji(game.flagA)} ${escapeHtml(game.game || "Game")}</strong>
+                <span>${escapeHtml(game.date || "")} ${escapeHtml(game.time || "")}</span>
+                <span>${escapeHtml(game.teamA || "")} vs ${escapeHtml(game.teamB || "")}</span>
+                <span>${game.active === false ? "Hidden" : "Active"}</span>
+              </div>
+              <button type="button" data-edit-game="${escapeHtml(game.id)}">Edit</button>
+              <button type="button" data-delete-game="${escapeHtml(game.id)}" class="danger-action">Delete</button>
+            </article>
+          `
+        )
+        .join("")
+    : `<p class="ticket-empty">No games yet.</p>`;
+  target.querySelectorAll("[data-edit-game]").forEach((button) => {
+    button.addEventListener("click", () => fillGameForm(games.find((game) => game.id === button.dataset.editGame)));
+  });
+  target.querySelectorAll("[data-delete-game]").forEach((button) => {
+    button.addEventListener("click", () => deleteGame(button.dataset.deleteGame));
+  });
+}
+
 function fillEventForm(event = {}) {
   document.querySelector("#eventId").value = event.id || "";
   document.querySelector("#eventTitle").value = event.title || "";
@@ -1227,6 +1344,7 @@ function renderAdminEvents() {
 function subscribeAdminContent() {
   fillContentEditor();
   fillTicketEditor();
+  renderAdminGames();
   renderAdminEvents();
   if (!firestoreEnabled || !firestoreDb) return;
   firestoreDb.collection(SITE_CONTENT_COLLECTION).doc(SITE_CONTENT_DOC).onSnapshot((doc) => {
@@ -1240,6 +1358,11 @@ function subscribeAdminContent() {
     adminEventsCache = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     eventsCache = adminEventsCache;
     renderAdminEvents();
+  });
+  firestoreDb.collection(GAMES_COLLECTION).orderBy("date").onSnapshot((snapshot) => {
+    adminGamesCache = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    gamesCache = adminGamesCache;
+    renderAdminGames();
   });
 }
 
@@ -1292,6 +1415,7 @@ function initAdminPage() {
   document.querySelector("#installHelpDone").addEventListener("click", () => closeInstallHelp(true));
   document.querySelector("#saveContentSettings").addEventListener("click", saveContentSettings);
   document.querySelector("#saveTicketSettings").addEventListener("click", saveTicketSettings);
+  document.querySelector("#saveGame").addEventListener("click", saveGameFromAdmin);
   document.querySelector("#saveEvent").addEventListener("click", saveEventFromAdmin);
 
   subscribeAdminContent();

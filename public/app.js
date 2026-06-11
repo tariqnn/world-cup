@@ -4,6 +4,7 @@ const FIREBASE_COLLECTION = "registrations";
 const SITE_CONTENT_COLLECTION = "siteContent";
 const SITE_CONTENT_DOC = "main";
 const EVENTS_COLLECTION = "events";
+const GAMES_COLLECTION = "games";
 const MAP_URL =
   "https://www.google.com/maps/search/?api=1&query=Bikers%20Village%20Airport%20Rd.%2C%20Amman%2C%20Jordan";
 const MAP_EMBED_URL =
@@ -12,6 +13,7 @@ const MAP_EMBED_URL =
 let registrationsCache = [];
 let siteContent = null;
 let eventsCache = [];
+let gamesCache = [];
 let firestoreDb = null;
 let firestoreEnabled = false;
 const registrationSubscribers = new Set();
@@ -433,6 +435,42 @@ const DEFAULT_EVENTS = [
   },
 ];
 
+const DEFAULT_GAMES = [
+  {
+    id: "opening-night",
+    date: "2026-12-18",
+    time: "7:00 PM",
+    game: "Jordan vs Brazil",
+    teamA: "Jordan",
+    teamB: "Brazil",
+    flagA: "JO",
+    flagB: "BR",
+    active: true,
+  },
+  {
+    id: "group-stage-night",
+    date: "2026-12-20",
+    time: "6:30 PM",
+    game: "Spain vs Japan",
+    teamA: "Spain",
+    teamB: "Japan",
+    flagA: "ES",
+    flagB: "JP",
+    active: true,
+  },
+  {
+    id: "final-night",
+    date: "2026-12-30",
+    time: "8:00 PM",
+    game: "Final screening",
+    teamA: "Team A",
+    teamB: "Team B",
+    flagA: "",
+    flagB: "",
+    active: true,
+  },
+];
+
 function getSiteContent() {
   return { ...DEFAULT_SITE_CONTENT, ...(siteContent || {}) };
 }
@@ -447,7 +485,7 @@ function eventFromTicketId(categoryId) {
   return activeEvents().find((event) => event.id === eventId) || null;
 }
 
-function getTicketCategory(event = selectedEvent()) {
+function getTicketCategory(event = selectedGame()) {
   const content = getSiteContent();
   if (event) {
     const title = event.title || event.game || "Match night";
@@ -611,6 +649,13 @@ function activeEvents() {
     .sort((a, b) => `${a.date || ""} ${a.time || ""}`.localeCompare(`${b.date || ""} ${b.time || ""}`));
 }
 
+function activeGames() {
+  const games = gamesCache.length ? gamesCache : DEFAULT_GAMES;
+  return games
+    .filter((game) => game.active !== false)
+    .sort((a, b) => `${a.date || ""} ${a.time || ""}`.localeCompare(`${b.date || ""} ${b.time || ""}`));
+}
+
 function flagEmoji(code) {
   const normalized = String(code || "").trim().toUpperCase();
   if (!/^[A-Z]{2}$/.test(normalized)) return "";
@@ -705,9 +750,12 @@ function selectEventForRegistration(eventId) {
   if (!event) return;
   const dateInput = document.querySelector("#eventDate");
   const gameSelect = document.querySelector("#game");
-  if (dateInput) dateInput.value = event.date || "";
+  const linkedGame =
+    activeGames().find((game) => game.id === event.gameId) ||
+    activeGames().find((game) => game.date === event.date && game.game === event.game);
+  if (dateInput) dateInput.value = linkedGame?.date || event.date || "";
   populateEventControls();
-  if (gameSelect) gameSelect.value = event.id;
+  if (gameSelect && linkedGame) gameSelect.value = linkedGame.id;
   addTicket(eventTicketId(event.id), 1);
   renderTicketPicker();
   updateTotal();
@@ -718,30 +766,31 @@ function populateEventControls() {
   const dateInput = document.querySelector("#eventDate");
   const gameSelect = document.querySelector("#game");
   if (!dateInput || !gameSelect) return;
-  const events = activeEvents();
-  if (!dateInput.value && events[0]?.date) dateInput.value = events[0].date;
+  const games = activeGames();
+  if (!dateInput.value && games[0]?.date) dateInput.value = games[0].date;
   const selectedGame = gameSelect.value;
-  const matches = events.filter((event) => !dateInput.value || event.date === dateInput.value);
+  const matches = games.filter((game) => !dateInput.value || game.date === dateInput.value);
   gameSelect.innerHTML = matches.length
     ? `<option value="">Select a game</option>${matches
-        .map((event) => `<option value="${event.id}">${flagEmoji(event.flagA)} ${event.game || `${event.teamA} vs ${event.teamB}`}</option>`)
+        .map((game) => `<option value="${game.id}">${flagEmoji(game.flagA)} ${game.game || `${game.teamA} vs ${game.teamB}`}</option>`)
         .join("")}`
     : `<option value="">No games for this date</option>`;
-  if (matches.some((event) => event.id === selectedGame)) {
+  if (matches.some((game) => game.id === selectedGame)) {
     gameSelect.value = selectedGame;
   } else if (matches[0]) {
     gameSelect.value = matches[0].id;
   }
 }
 
-function selectedEvent() {
+function selectedGame() {
   const id = document.querySelector("#game")?.value || "";
-  return activeEvents().find((event) => event.id === id) || null;
+  return activeGames().find((game) => game.id === id) || null;
 }
 
 async function initContentData() {
   siteContent = getSiteContent();
   eventsCache = DEFAULT_EVENTS;
+  gamesCache = DEFAULT_GAMES;
   renderSiteContent();
   renderEvents();
   populateEventControls();
@@ -763,7 +812,13 @@ async function initContentData() {
   firestoreDb.collection(EVENTS_COLLECTION).orderBy("date").onSnapshot((snapshot) => {
     eventsCache = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     renderEvents();
+  });
+
+  firestoreDb.collection(GAMES_COLLECTION).orderBy("date").onSnapshot((snapshot) => {
+    gamesCache = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     populateEventControls();
+    renderTicketPicker();
+    updateTotal();
   });
 }
 
@@ -874,7 +929,7 @@ function renderTicketPicker() {
   const picker = document.querySelector("#ticketPicker");
   if (!picker) return;
   const lang = getLanguage();
-  const category = getTicketCategory(selectedEvent());
+  const category = getTicketCategory(selectedGame());
 
   picker.innerHTML = `
     <div class="ticket-add">
@@ -1003,6 +1058,7 @@ function getTicketSelection() {
         categoryId: category.id,
         categoryName: category.name.en,
         eventId: event?.id || "",
+        gameId: event?.id || "",
         eventTitle: event?.title || "",
         eventDate: event?.date || "",
         eventTime: event?.time || "",
@@ -1059,7 +1115,7 @@ async function handleRegistrationSubmit(event) {
   }
 
   const primaryCategory = ticketSelection.tickets.length === 1 ? getCategory(ticketSelection.tickets[0].categoryId) : null;
-  const chosenEvent = selectedEvent();
+  const chosenGame = selectedGame();
   const firstTicketEvent = ticketSelection.eventTickets[0] || null;
   const hasMultipleEvents = new Set(ticketSelection.eventTickets.map((ticket) => ticket.eventId)).size > 1;
   const registration = {
@@ -1074,15 +1130,16 @@ async function handleRegistrationSubmit(event) {
     gender: data.gender,
     categoryId: primaryCategory?.id || "multiple",
     categoryName: primaryCategory?.name.en || "Multiple categories",
-    eventId: hasMultipleEvents ? "multiple" : chosenEvent?.id || firstTicketEvent?.eventId || data.game || "",
-    eventTitle: hasMultipleEvents ? "Multiple events" : chosenEvent?.title || firstTicketEvent?.eventTitle || "",
-    eventDate: hasMultipleEvents ? "Multiple dates" : data.eventDate || firstTicketEvent?.eventDate || "",
-    game: hasMultipleEvents ? "Multiple games" : chosenEvent?.game || firstTicketEvent?.game || data.game || "",
-    teamA: hasMultipleEvents ? "" : chosenEvent?.teamA || firstTicketEvent?.teamA || "",
-    teamB: hasMultipleEvents ? "" : chosenEvent?.teamB || firstTicketEvent?.teamB || "",
-    flagA: hasMultipleEvents ? "" : chosenEvent?.flagA || firstTicketEvent?.flagA || "",
-    flagB: hasMultipleEvents ? "" : chosenEvent?.flagB || firstTicketEvent?.flagB || "",
-    eventTime: hasMultipleEvents ? "" : chosenEvent?.time || firstTicketEvent?.eventTime || "",
+    gameId: hasMultipleEvents ? "multiple" : chosenGame?.id || firstTicketEvent?.gameId || data.game || "",
+    eventId: hasMultipleEvents ? "multiple" : firstTicketEvent?.eventId || "",
+    eventTitle: hasMultipleEvents ? "Multiple events" : firstTicketEvent?.eventTitle || "",
+    eventDate: hasMultipleEvents ? "Multiple dates" : chosenGame?.date || data.eventDate || firstTicketEvent?.eventDate || "",
+    game: hasMultipleEvents ? "Multiple games" : chosenGame?.game || firstTicketEvent?.game || data.game || "",
+    teamA: hasMultipleEvents ? "" : chosenGame?.teamA || firstTicketEvent?.teamA || "",
+    teamB: hasMultipleEvents ? "" : chosenGame?.teamB || firstTicketEvent?.teamB || "",
+    flagA: hasMultipleEvents ? "" : chosenGame?.flagA || firstTicketEvent?.flagA || "",
+    flagB: hasMultipleEvents ? "" : chosenGame?.flagB || firstTicketEvent?.flagB || "",
+    eventTime: hasMultipleEvents ? "" : chosenGame?.time || firstTicketEvent?.eventTime || "",
     tickets: ticketSelection.tickets,
     quantity: ticketSelection.totalQuantity,
     totalQuantity: ticketSelection.totalQuantity,

@@ -28,6 +28,11 @@ service cloud.firestore {
       allow read, create, update, delete: if true;
     }
 
+    match /games/{gameId} {
+      // Temporary for local admin/testing. Replace with authenticated admin rules before production.
+      allow read, create, update, delete: if true;
+    }
+
     function isValidRegistration() {
       return request.resource.data.keys().hasOnly([
         'id',
@@ -41,6 +46,7 @@ service cloud.firestore {
         'gender',
         'categoryId',
         'categoryName',
+        'gameId',
         'eventId',
         'eventTitle',
         'eventDate',

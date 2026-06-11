@@ -66,6 +66,7 @@
 
       <div class="admin-quick-actions" aria-label="Admin quick actions">
         <a href="#guestListPanel">Guests</a>
+        <a href="#gameSettings">Games</a>
         <a href="#eventSettings">Events</a>
         <a href="#ticketSettings">Tickets</a>
         <a href="#websiteSettings">Website</a>
@@ -98,6 +99,36 @@
           <label>Ticket image<input data-content-field="ticketPreviewImage" /></label>
         </div>
         <p class="admin-save-state" id="contentSaveState"></p>
+      </details>
+
+      <details class="admin-panel games-admin-panel" id="gameSettings">
+        <summary class="admin-summary">
+          <span>
+            <strong>Games</strong>
+            <small>Date, time, teams.</small>
+          </span>
+          <span>Edit</span>
+        </summary>
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Games</p>
+            <h2>Add game</h2>
+          </div>
+          <button class="button button--primary" id="saveGame" type="button">Save</button>
+        </div>
+        <div class="event-editor-grid">
+          <input type="hidden" id="gameId" />
+          <label>Date<input id="gameDateAdmin" type="date" /></label>
+          <label>Time<input id="gameTimeAdmin" type="time" /></label>
+          <label>Game<input id="gameGame" placeholder="Auto from teams" readonly /></label>
+          <label>Team A<select id="gameTeamA"></select></label>
+          <input id="gameFlagA" type="hidden" />
+          <label>Team B<select id="gameTeamB"></select></label>
+          <input id="gameFlagB" type="hidden" />
+          <label class="checkbox-row"><input id="gameActive" type="checkbox" checked /> Active</label>
+        </div>
+        <p class="admin-save-state" id="gameSaveState"></p>
+        <div class="admin-events-list" id="adminGamesList"></div>
       </details>
 
       <details class="admin-panel events-admin-panel" id="eventSettings">
