@@ -1,13 +1,17 @@
-const CACHE_NAME = "nashama-registration-v10";
+const CACHE_NAME = "nashama-registration-v11";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
+  "/admin.html",
   "/styles.css",
   "/app.js",
+  "/admin.js",
   "/firebase-config.js",
   "/manifest.webmanifest",
+  "/admin.webmanifest",
   "/assets/nashama-logo.jpg",
   "/assets/nashama-hero.jpg",
+  "/assets/wristband.jpg",
   "/assets/vip-pass.jpg",
   "/assets/ticket-preview.jpg"
 ];
