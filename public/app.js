@@ -379,9 +379,10 @@ const DEFAULT_SITE_CONTENT = {
   featureVip: "Front screen viewing zones",
   featureChildren: "Children's activities and selfie booth",
   featureCheckin: "Digital confirmation for staff check-in",
-  photo1: "assets/venue-layout.jpg",
-  photo2: "assets/entrance-zone.jpg",
-  photo3: "assets/kids-activity.png",
+  photo1: "assets/nashama-experience-1.jpeg",
+  photo2: "assets/nashama-experience-2.jpeg",
+  photo3: "assets/nashama-experience-3.jpeg",
+  photo4: "assets/nashama-experience-4.jpeg",
   heroImage: "assets/vip-pass.jpg",
   ticketPreviewImage: "assets/ticket-preview.jpg",
   mapUrl: MAP_URL,
@@ -816,6 +817,7 @@ function renderSiteContent() {
   setSrc("[data-content-image='photo1']", content.photo1);
   setSrc("[data-content-image='photo2']", content.photo2);
   setSrc("[data-content-image='photo3']", content.photo3);
+  setSrc("[data-content-image='photo4']", content.photo4);
 
   document.querySelectorAll("[data-map-link]").forEach((link) => {
     link.href = content.mapUrl || MAP_URL;
@@ -1418,6 +1420,35 @@ async function handleRegistrationSubmit(event) {
   updateTotal();
 }
 
+function initCopyButtons() {
+  document.querySelectorAll("[data-copy-value]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const value = button.dataset.copyValue || "";
+      const target = document.querySelector(`#${button.dataset.copyTarget}`);
+      const status = button.closest(".cliq-panel")?.querySelector("[data-copy-status]");
+
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(value);
+        } else if (target) {
+          target.select();
+          document.execCommand("copy");
+        }
+        button.textContent = "Copied";
+        if (status) status.textContent = "CliQ alias copied.";
+      } catch (error) {
+        if (target) target.select();
+        if (status) status.textContent = "Select the alias and copy it manually.";
+      }
+
+      window.setTimeout(() => {
+        button.textContent = "Copy";
+        if (status) status.textContent = "";
+      }, 2200);
+    });
+  });
+}
+
 function initRegistrationPage() {
   const form = document.querySelector("#registrationForm");
 
@@ -1432,6 +1463,7 @@ function initRegistrationPage() {
     updateTotal();
   });
   form?.addEventListener("submit", handleRegistrationSubmit);
+  initCopyButtons();
   updateTotal();
 }
 

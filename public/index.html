@@ -135,9 +135,10 @@
           </div>
         </div>
         <div class="image-grid">
-          <img src="assets/venue-layout.jpg" alt="Venue layout render" loading="lazy" data-content-image="photo1" />
-          <img src="assets/entrance-zone.jpg" alt="Entrance zone render" loading="lazy" data-content-image="photo2" />
-          <img src="assets/kids-activity.png" alt="Children activity area preview" loading="lazy" data-content-image="photo3" />
+          <img src="assets/nashama-experience-1.jpeg" alt="Nashama Arena theatre seating and main screen" loading="lazy" data-content-image="photo1" />
+          <img src="assets/nashama-experience-2.jpeg" alt="Nashama Arena screen during a live match" loading="lazy" data-content-image="photo2" />
+          <img src="assets/nashama-experience-3.jpeg" alt="Nashama Arena welcome sign at night" loading="lazy" data-content-image="photo3" />
+          <img src="assets/nashama-experience-4.jpeg" alt="Nashama Arena branded exterior detail" loading="lazy" data-content-image="photo4" />
         </div>
       </section>
 
@@ -208,20 +209,24 @@
             </div>
           </div>
 
-          <div class="form-row form-row--two">
-            <div>
-              <label for="eventDate">Event date *</label>
-              <input id="eventDate" name="eventDate" type="date" required />
-              <p class="field-error" id="eventDateError"></p>
+          <fieldset class="form-event-panel">
+            <legend>Match selection</legend>
+            <p>Pick the same event date and game shown in the schedule above.</p>
+            <div class="form-event-fields">
+              <div>
+                <label for="eventDate">Event date *</label>
+                <input id="eventDate" name="eventDate" type="date" required />
+                <p class="field-error" id="eventDateError"></p>
+              </div>
+              <div>
+                <label for="game">Game *</label>
+                <select id="game" name="game" required>
+                  <option value="">Select a game</option>
+                </select>
+                <p class="field-error" id="gameError"></p>
+              </div>
             </div>
-            <div>
-              <label for="game">Game *</label>
-              <select id="game" name="game" required>
-                <option value="">Select a game</option>
-              </select>
-              <p class="field-error" id="gameError"></p>
-            </div>
-          </div>
+          </fieldset>
 
           <fieldset class="ticket-picker">
             <legend data-i18n="form.ticketSelection">Ticket selection *</legend>
@@ -248,6 +253,21 @@
               data-i18n-placeholder="form.notesPlaceholder"
               placeholder="Dietary needs, accessibility support, group name..."
             ></textarea>
+          </div>
+
+          <div class="cliq-panel">
+            <div>
+              <span>CliQ payment alias</span>
+              <strong>nashama26</strong>
+              <small>Copy this alias and paste it in your bank app.</small>
+            </div>
+            <div class="cliq-copy">
+              <input id="cliqAlias" type="text" value="nashama26" readonly aria-label="CliQ payment alias" />
+              <button class="button button--primary" type="button" data-copy-value="nashama26" data-copy-target="cliqAlias">
+                Copy
+              </button>
+            </div>
+            <small class="copy-status" data-copy-status aria-live="polite"></small>
           </div>
 
           <div class="price-panel" aria-live="polite">

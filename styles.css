@@ -844,14 +844,10 @@ h3 {
 }
 
 .image-grid img {
-  aspect-ratio: 1.25;
+  aspect-ratio: 0.78;
   border-radius: var(--radius);
   object-fit: cover;
   width: 100%;
-}
-
-.image-grid img:first-child {
-  grid-column: 1 / -1;
 }
 
 .registration-copy img {
@@ -875,6 +871,74 @@ h3 {
 
 .form-row {
   margin-bottom: 1rem;
+}
+
+.form-event-panel {
+  background:
+    linear-gradient(135deg, rgba(77, 11, 34, 0.96), rgba(111, 17, 49, 0.94)),
+    radial-gradient(circle at top right, rgba(213, 166, 66, 0.34), transparent 13rem);
+  border: 1px solid rgba(213, 166, 66, 0.36);
+  border-radius: var(--radius);
+  box-shadow: 0 14px 34px rgba(35, 7, 17, 0.14);
+  color: #fff7e7;
+  margin: 0 0 1rem;
+  padding: 1rem;
+}
+
+.form-event-panel legend {
+  color: var(--gold-200);
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 0 0.35rem;
+  text-transform: uppercase;
+}
+
+.form-event-panel > p {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.94rem;
+  font-weight: 700;
+  margin: 0 0 0.85rem;
+}
+
+.form-event-fields {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-event-fields > div {
+  background: rgba(255, 249, 236, 0.1);
+  border: 1px solid rgba(242, 223, 176, 0.26);
+  border-radius: var(--radius);
+  min-width: 0;
+  padding: 0.75rem;
+}
+
+.form-event-fields label {
+  color: var(--gold-200);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.form-event-fields input,
+.form-event-fields select {
+  background: #fffaf0;
+  border-color: rgba(213, 166, 66, 0.62);
+  color: var(--maroon-950);
+  cursor: pointer;
+  font-weight: 800;
+  min-width: 0;
+}
+
+.form-event-fields input:focus-visible,
+.form-event-fields select:focus-visible {
+  outline-color: rgba(255, 255, 255, 0.72);
+}
+
+.form-event-fields .field-error {
+  color: #ffe7a3;
 }
 
 .ticket-picker {
@@ -1032,6 +1096,59 @@ textarea {
   font-size: 0.9rem;
   font-weight: 700;
   margin: 0.3rem 0 0;
+  min-height: 1.2rem;
+}
+
+.cliq-panel {
+  background:
+    linear-gradient(135deg, #fffaf0, #fff),
+    radial-gradient(circle at top right, rgba(213, 166, 66, 0.2), transparent 12rem);
+  border: 1px solid var(--gold-200);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 1rem;
+}
+
+.cliq-panel span,
+.cliq-panel small {
+  color: var(--muted);
+  display: block;
+  font-weight: 800;
+}
+
+.cliq-panel span {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cliq-panel strong {
+  color: var(--maroon-800);
+  display: block;
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+}
+
+.cliq-copy {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.cliq-copy input {
+  background: #fff;
+  border-color: #e2cfa7;
+  color: var(--maroon-900);
+  font-weight: 900;
+}
+
+.cliq-copy .button {
+  min-height: 48px;
+}
+
+.copy-status {
   min-height: 1.2rem;
 }
 
@@ -1895,9 +2012,11 @@ td {
   .category-grid,
   .events-grid,
   .stats-grid,
+  .form-event-fields,
   .form-row--two,
   .image-grid,
   .phone-input,
+  .cliq-copy,
   .ticket-add,
   .ticket-row,
   .scan-record {
