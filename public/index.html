@@ -135,10 +135,10 @@
           </div>
         </div>
         <div class="image-grid">
-          <img src="assets/nashama-experience-1.jpeg" alt="Nashama Arena theatre seating and main screen" loading="lazy" data-content-image="photo1" />
-          <img src="assets/nashama-experience-2.jpeg" alt="Nashama Arena screen during a live match" loading="lazy" data-content-image="photo2" />
-          <img src="assets/nashama-experience-3.jpeg" alt="Nashama Arena welcome sign at night" loading="lazy" data-content-image="photo3" />
-          <img src="assets/nashama-experience-4.jpeg" alt="Nashama Arena branded exterior detail" loading="lazy" data-content-image="photo4" />
+          <img src="assets/nashama-experience-1.jpeg" alt="Nashama Arena theatre seating and main screen" loading="lazy" />
+          <img src="assets/nashama-experience-2.jpeg" alt="Nashama Arena screen during a live match" loading="lazy" />
+          <img src="assets/nashama-experience-3.jpeg" alt="Nashama Arena welcome sign at night" loading="lazy" />
+          <img src="assets/nashama-experience-4.jpeg" alt="Nashama Arena branded exterior detail" loading="lazy" />
         </div>
       </section>
 
@@ -209,9 +209,11 @@
             </div>
           </div>
 
-          <fieldset class="form-event-panel">
-            <legend>Match selection</legend>
-            <p>Pick the same event date and game shown in the schedule above.</p>
+          <div class="form-event-panel" role="group" aria-labelledby="matchSelectionTitle">
+            <div class="form-event-panel__header">
+              <span id="matchSelectionTitle">Match selection</span>
+              <p>Pick the event date and game shown in the schedule above.</p>
+            </div>
             <div class="form-event-fields">
               <div>
                 <label for="eventDate">Event date *</label>
@@ -226,7 +228,7 @@
                 <p class="field-error" id="gameError"></p>
               </div>
             </div>
-          </fieldset>
+          </div>
 
           <fieldset class="ticket-picker">
             <legend data-i18n="form.ticketSelection">Ticket selection *</legend>
