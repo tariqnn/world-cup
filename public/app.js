@@ -418,7 +418,7 @@ function getTicketCategory(event = selectedGame()) {
       description: { en: details || content.ticketDescription, ar: details || content.ticketDescription },
       access: { en: event.game || content.ticketAccess, ar: event.game || content.ticketAccess },
       badgeKey: "category.badge.general",
-      price: Number(event.price ?? content.ticketPrice ?? DEFAULT_SITE_CONTENT.ticketPrice),
+      price: ticketPriceForEvent(event),
       featured: true,
       event,
     };
@@ -619,6 +619,21 @@ function activePublicEvents() {
     .sort((a, b) => `${a.date || ""} ${a.time || ""}`.localeCompare(`${b.date || ""} ${b.time || ""}`));
 }
 
+function isJordanGame(event = {}) {
+  const flags = [event.flagA, event.flagB].map((flag) => String(flag || "").trim().toUpperCase());
+  const teams = [event.teamA, event.teamB, event.game, event.title].join(" ").toLowerCase();
+  return flags.includes("JO") || /\bjordan\b/.test(teams);
+}
+
+function defaultTicketPrice() {
+  return Number(getSiteContent().ticketPrice || DEFAULT_SITE_CONTENT.ticketPrice);
+}
+
+function ticketPriceForEvent(event = {}) {
+  if (isJordanGame(event)) return 10;
+  return Number(event.price ?? defaultTicketPrice());
+}
+
 function activeGameEvents() {
   return activeGames()
     .map((game) => ({
@@ -633,7 +648,7 @@ function activeGameEvents() {
       teamB: game.teamB || "",
       flagA: game.flagA || "",
       flagB: game.flagB || "",
-      price: Number(getSiteContent().ticketPrice || DEFAULT_SITE_CONTENT.ticketPrice),
+      price: ticketPriceForEvent(game),
       image: getSiteContent().ticketPreviewImage || "assets/match-night.jpg",
       description: game.date ? "Match ticket available from the registration form." : "",
       active: game.active !== false,
