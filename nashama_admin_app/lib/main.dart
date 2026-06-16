@@ -26,6 +26,7 @@ const _siteContentCollection = 'siteContent';
 const _siteContentDoc = 'main';
 const _eventsCollection = 'events';
 const _publicPassBaseUrl = 'https://world-cup-ccf88.web.app/pass.html';
+const _jordanTicketPrice = 10.0;
 
 const _statusOptions = ['New', 'Confirmed', 'Checked in', 'Cancelled'];
 
@@ -1870,6 +1871,7 @@ class _WebsiteDataPanelState extends State<_WebsiteDataPanel> {
   Future<void> _saveEvent() async {
     final date = _eventDate.text.trim();
     final game = _eventGame.text.trim();
+    final title = _eventTitle.text.trim();
     if (date.isEmpty || game.isEmpty) {
       _showPanelSnack(tr('eventRequired'));
       return;
@@ -1878,13 +1880,17 @@ class _WebsiteDataPanelState extends State<_WebsiteDataPanel> {
         '$date-${game.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-')}';
     await FirebaseFirestore.instance.collection(_eventsCollection).doc(id).set({
       'id': id,
-      'title': _eventTitle.text.trim(),
+      'title': title,
       'date': date,
       'game': game,
       'image': _eventImage.text.trim().isEmpty
           ? 'assets/match-night.jpg'
           : _eventImage.text.trim(),
-      'price': readDouble(_ticketPrice.text),
+      'price': ticketPriceForEvent(
+        game: game,
+        title: title,
+        price: readDouble(_ticketPrice.text),
+      ),
       'active': true,
     }, SetOptions(merge: true));
     if (mounted) _showPanelSnack(tr('saved'));
@@ -2357,6 +2363,17 @@ class RegistrationRecord {
       quantity: readInt(data['quantity']),
       price: readDouble(data['price']),
       total: readDouble(data['total']),
+      eventTitle: readString(data['eventTitle']),
+      game: readString(data['game']),
+      teamA: readString(data['teamA']),
+      teamB: readString(data['teamB']),
+      flagA: readString(data['flagA']),
+      flagB: readString(data['flagB']),
+    );
+    final effectiveTickets = tickets.isNotEmpty ? tickets : [fallbackTicket];
+    final effectiveTotal = effectiveTickets.fold<double>(
+      0,
+      (total, ticket) => total + ticket.effectiveTotal,
     );
 
     return RegistrationRecord(
@@ -2372,13 +2389,13 @@ class RegistrationRecord {
       quantity: readInt(data['totalQuantity']) > 0
           ? readInt(data['totalQuantity'])
           : readInt(data['quantity']),
-      total: readDouble(data['total']),
+      total: effectiveTotal > 0 ? effectiveTotal : readDouble(data['total']),
       paidStatus: normalizePaidStatus(data),
       status: readString(data['status']).isEmpty
           ? 'New'
           : readString(data['status']),
       createdAt: readDate(data['createdAt']),
-      tickets: tickets.isNotEmpty ? tickets : [fallbackTicket],
+      tickets: effectiveTickets,
     );
   }
 
@@ -2412,6 +2429,12 @@ class TicketLine {
     required this.quantity,
     required this.price,
     required this.total,
+    this.eventTitle = '',
+    this.game = '',
+    this.teamA = '',
+    this.teamB = '',
+    this.flagA = '',
+    this.flagB = '',
   });
 
   factory TicketLine.fromMap(Map<String, dynamic> data) {
@@ -2421,6 +2444,12 @@ class TicketLine {
       quantity: readInt(data['quantity']),
       price: readDouble(data['price']),
       total: readDouble(data['total']),
+      eventTitle: readString(data['eventTitle']),
+      game: readString(data['game']),
+      teamA: readString(data['teamA']),
+      teamB: readString(data['teamB']),
+      flagA: readString(data['flagA']),
+      flagB: readString(data['flagB']),
     );
   }
 
@@ -2429,6 +2458,33 @@ class TicketLine {
   final int quantity;
   final double price;
   final double total;
+  final String eventTitle;
+  final String game;
+  final String teamA;
+  final String teamB;
+  final String flagA;
+  final String flagB;
+
+  bool get isJordanGame => isJordanMatchData(
+    flagA: flagA,
+    flagB: flagB,
+    teamA: teamA,
+    teamB: teamB,
+    game: game,
+    title: eventTitle.isEmpty ? categoryName : eventTitle,
+  );
+
+  double get effectiveUnitPrice {
+    if (isJordanGame) return _jordanTicketPrice;
+    if (price > 0) return price;
+    if (quantity > 0 && total > 0) return total / quantity;
+    return 0;
+  }
+
+  double get effectiveTotal {
+    if (quantity > 0) return effectiveUnitPrice * quantity;
+    return total;
+  }
 }
 
 class TicketCategory {
@@ -2602,6 +2658,41 @@ int readInt(Object? value) {
 double readDouble(Object? value) {
   if (value is num) return value.toDouble();
   return double.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+bool isJordanMatchData({
+  String flagA = '',
+  String flagB = '',
+  String teamA = '',
+  String teamB = '',
+  String game = '',
+  String title = '',
+}) {
+  final flags = {flagA.trim().toUpperCase(), flagB.trim().toUpperCase()};
+  final text = [teamA, teamB, game, title].join(' ').toLowerCase();
+  return flags.contains('JO') || RegExp(r'\bjordan\b').hasMatch(text);
+}
+
+double ticketPriceForEvent({
+  String flagA = '',
+  String flagB = '',
+  String teamA = '',
+  String teamB = '',
+  String game = '',
+  String title = '',
+  required double price,
+}) {
+  if (isJordanMatchData(
+    flagA: flagA,
+    flagB: flagB,
+    teamA: teamA,
+    teamB: teamB,
+    game: game,
+    title: title,
+  )) {
+    return _jordanTicketPrice;
+  }
+  return price;
 }
 
 String normalizePaidStatus(Map<String, dynamic> data) {

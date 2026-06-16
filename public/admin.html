@@ -339,14 +339,16 @@
           <button class="button button--primary" id="sharePdfFile" type="button">Share PDF</button>
           <button class="button" id="openPdfFile" type="button">Open PDF</button>
           <button class="button" id="downloadPdfFile" type="button">Download</button>
-          <button class="button" id="messagePdfGuest" type="button">WhatsApp guest</button>
+          <button class="button" id="messagePdfGuest" type="button">WhatsApp customer</button>
         </div>
         <p class="sheet-note">
-          On iPhone, tap Share PDF and choose WhatsApp. If WhatsApp does not attach the file,
-          tap Open PDF, then use the iOS share button from the PDF screen.
+          On iPhone, WhatsApp customer opens the customer's chat directly. Use Share PDF or Open PDF
+          to attach the generated ticket file.
         </p>
       </div>
     </div>
+
+    <div class="admin-toast" id="adminToast" role="status" aria-live="polite" hidden></div>
 
     <div class="app-modal app-modal--install" id="installHelpModal" hidden>
       <div class="app-sheet install-sheet" role="dialog" aria-modal="true" aria-labelledby="installHelpTitle">
@@ -373,8 +375,8 @@
 
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="vendor/qrcode.js"></script>
+    <script src="vendor/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="firebase-config.js"></script>
     <script src="app.js"></script>

@@ -21,6 +21,21 @@ void main() {
     expect(readString(null), '');
   });
 
+  test('jordan ticket lines use 10 JOD even if stored price is stale', () {
+    const ticket = TicketLine(
+      categoryId: 'event-ticket-jordan-match',
+      categoryName: 'Jordan vs Spain Ticket',
+      quantity: 2,
+      price: 5,
+      total: 10,
+      game: 'Jordan vs Spain',
+      flagA: 'JO',
+    );
+
+    expect(ticket.effectiveUnitPrice, 10);
+    expect(ticket.effectiveTotal, 20);
+  });
+
   test('phone numbers are cleaned for the dialer', () {
     expect(normalizedDialPhone('+962 7 9000-1111'), '+962790001111');
     expect(normalizedDialPhone('00971 50 123 4567'), '00971501234567');

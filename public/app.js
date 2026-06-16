@@ -616,6 +616,7 @@ function activePublicEvents() {
   const events = eventsCache.length ? eventsCache : DEFAULT_EVENTS;
   return events
     .filter((event) => event.active !== false)
+    .map((event) => ({ ...event, price: ticketPriceForEvent(event) }))
     .sort((a, b) => `${a.date || ""} ${a.time || ""}`.localeCompare(`${b.date || ""} ${b.time || ""}`));
 }
 

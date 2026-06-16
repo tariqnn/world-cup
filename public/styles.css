@@ -1803,6 +1803,43 @@ td {
   margin: 0.85rem 0 0;
 }
 
+.admin-toast {
+  background: #2c0714;
+  border: 2px solid var(--gold-500);
+  border-radius: 8px;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: var(--shadow);
+  color: #fff7e8;
+  font-weight: 900;
+  left: 50%;
+  max-width: min(520px, calc(100vw - 2rem));
+  padding: 0.85rem 1rem;
+  position: fixed;
+  transform: translateX(-50%);
+  width: max-content;
+  z-index: 400;
+}
+
+.admin-toast[hidden] {
+  display: none;
+}
+
+.admin-toast--success {
+  background: #0f4d25;
+  border-color: #bfe7ca;
+}
+
+.admin-toast--error,
+.admin-toast--invalid {
+  background: #7a1f17;
+  border-color: #ffd5d0;
+}
+
+.admin-toast--alreadyScanned {
+  background: #6a4009;
+  border-color: var(--gold-500);
+}
+
 .install-steps ol {
   margin: 0.75rem 0 1rem;
   padding-left: 1.25rem;

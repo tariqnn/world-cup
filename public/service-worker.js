@@ -1,4 +1,4 @@
-const CACHE_NAME = "nashama-registration-v12";
+const CACHE_NAME = "nashama-registration-v14";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -6,6 +6,8 @@ const STATIC_ASSETS = [
   "/styles.css",
   "/app.js",
   "/admin.js",
+  "/vendor/qrcode.js",
+  "/vendor/jspdf.umd.min.js",
   "/firebase-config.js",
   "/manifest.webmanifest",
   "/admin.webmanifest",

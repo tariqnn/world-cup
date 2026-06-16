@@ -14,6 +14,8 @@ let scannerExpectedName = "";
 let scannerBusy = false;
 let scannerStarting = false;
 let currentPdf = null;
+let adminToastTimer = null;
+let pdfToolsPromise = null;
 let adminEventsCache = [];
 let adminGamesCache = [];
 let editingGameGroup = "";
@@ -124,9 +126,63 @@ function formatDate(value) {
   }).format(date);
 }
 
+function adminTicketPriceForEvent(event = {}) {
+  if (typeof ticketPriceForEvent === "function") return ticketPriceForEvent(event);
+  if (typeof isJordanGame === "function" && isJordanGame(event)) return 10;
+  return Number(event.price ?? getSiteContent().ticketPrice ?? 0);
+}
+
+function adminTicketEvent(ticket = {}, registration = {}) {
+  return {
+    ...registration,
+    ...ticket,
+    title:
+      ticket.eventTitle ||
+      registration.eventTitle ||
+      ticket.title ||
+      registration.title ||
+      ticket.categoryName ||
+      registration.categoryName ||
+      "",
+    game: ticket.game || registration.game || "",
+    teamA: ticket.teamA || registration.teamA || "",
+    teamB: ticket.teamB || registration.teamB || "",
+    flagA: ticket.flagA || registration.flagA || "",
+    flagB: ticket.flagB || registration.flagB || "",
+  };
+}
+
+function adminTicketLineTotal(ticket = {}, registration = {}) {
+  const quantity = Number(ticket.quantity || 0);
+  if (quantity <= 0) return 0;
+  const event = adminTicketEvent(ticket, registration);
+  if (typeof isJordanGame === "function" && isJordanGame(event)) return 10 * quantity;
+  const storedPrice = Number(ticket.price ?? 0);
+  if (storedPrice > 0) return storedPrice * quantity;
+  const storedTotal = Number(ticket.total ?? 0);
+  return storedTotal > 0 ? storedTotal : 0;
+}
+
+function adminRegistrationTotal(registration = {}) {
+  if (registration.tickets?.length) {
+    const ticketTotal = registration.tickets.reduce(
+      (sum, ticket) => sum + adminTicketLineTotal(ticket, registration),
+      0
+    );
+    if (ticketTotal > 0) return ticketTotal;
+  }
+  const quantity = Number(registration.quantity || registration.totalQuantity || 0);
+  const registrationEvent = {
+    ...registration,
+    title: registration.eventTitle || registration.title || registration.categoryName || "",
+  };
+  if (typeof isJordanGame === "function" && isJordanGame(registrationEvent) && quantity > 0) return 10 * quantity;
+  return Number(registration.total || 0);
+}
+
 function renderStats(registrations) {
   const tickets = registrations.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-  const revenue = registrations.reduce((sum, item) => sum + Number(item.total || 0), 0);
+  const revenue = registrations.reduce((sum, item) => sum + adminRegistrationTotal(item), 0);
   const vipTickets = registrations.reduce((sum, item) => {
     if (item.tickets?.length) {
       return (
@@ -219,7 +275,7 @@ function renderRows(registrations = readRegistrations()) {
             ${registration.notes ? `<span class="cell-muted">${escapeHtml(registration.notes)}</span>` : ""}
           </td>
           <td>${Number(registration.quantity || 0)}</td>
-          <td>${formatMoney(registration.total)}</td>
+          <td>${formatMoney(adminRegistrationTotal(registration))}</td>
           <td>
             <select class="status-select" data-status-id="${escapeHtml(registration.id)}" aria-label="Status for ${escapeHtml(registration.fullName)}">
               ${STATUS_OPTIONS.map(
@@ -263,7 +319,7 @@ function renderRows(registrations = readRegistrations()) {
               ${registrationEventText(registration) ? `<span>${escapeHtml(registrationEventText(registration))}</span>` : ""}
               ${registration.gender ? `<span>${escapeHtml(registration.gender)}</span>` : ""}
               <span>${escapeHtml(renderTicketText(registration))}</span>
-              <span>${Number(registration.quantity || 0)} tickets - ${formatMoney(registration.total)}</span>
+              <span>${Number(registration.quantity || 0)} tickets - ${formatMoney(adminRegistrationTotal(registration))}</span>
               <span>Registered ${formatDate(registration.createdAt)}</span>
             </div>
             <div class="admin-card-controls">
@@ -541,6 +597,18 @@ function setActionBusy(button, busyText) {
   };
 }
 
+function showAdminToast(message, type = "info") {
+  const toast = document.querySelector("#adminToast");
+  if (!toast) return;
+  window.clearTimeout(adminToastTimer);
+  toast.className = `admin-toast admin-toast--${type}`;
+  toast.textContent = message;
+  toast.hidden = false;
+  adminToastTimer = window.setTimeout(() => {
+    toast.hidden = true;
+  }, 4200);
+}
+
 function cleanupCurrentPdf() {
   if (currentPdf?.url) URL.revokeObjectURL(currentPdf.url);
   currentPdf = null;
@@ -555,6 +623,89 @@ function blobToDataUrl(blob) {
   });
 }
 
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function scriptAlreadyOnPage(src) {
+  return [...document.scripts].some((script) => script.src === src || script.dataset.dynamicSrc === src);
+}
+
+function loadExternalScript(src) {
+  return new Promise((resolve, reject) => {
+    if (scriptAlreadyOnPage(src)) {
+      resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    const timeout = window.setTimeout(() => {
+      script.remove();
+      reject(new Error(`Timed out loading ${src}`));
+    }, 12000);
+    script.src = src;
+    script.async = true;
+    script.dataset.dynamicSrc = src;
+    script.onload = () => {
+      window.clearTimeout(timeout);
+      resolve();
+    };
+    script.onerror = () => {
+      window.clearTimeout(timeout);
+      script.remove();
+      reject(new Error(`Could not load ${src}`));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+async function loadFirstWorkingScript(sources, isReady) {
+  if (isReady()) return;
+  let lastError = null;
+  for (const src of sources) {
+    try {
+      await loadExternalScript(src);
+      if (isReady()) return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("Required tool did not load.");
+}
+
+async function ensurePdfToolsReady() {
+  if (window.jspdf?.jsPDF && window.QRCode?.toDataURL) return;
+  if (!pdfToolsPromise) {
+    pdfToolsPromise = (async () => {
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        if (window.jspdf?.jsPDF && window.QRCode?.toDataURL) return;
+        await wait(250);
+      }
+      await loadFirstWorkingScript(
+        [
+          "vendor/qrcode.js",
+          "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js",
+          "https://unpkg.com/qrcode@1.5.4/build/qrcode.min.js",
+          "https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.4/qrcode.min.js",
+        ],
+        () => Boolean(window.QRCode?.toDataURL)
+      );
+      await loadFirstWorkingScript(
+        [
+          "vendor/jspdf.umd.min.js",
+          "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js",
+          "https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js",
+          "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+        ],
+        () => Boolean(window.jspdf?.jsPDF)
+      );
+    })().catch((error) => {
+      pdfToolsPromise = null;
+      throw error;
+    });
+  }
+  await pdfToolsPromise;
+}
+
 function showPdfModal({ blob, dataUrl, file, filename, registration }) {
   cleanupCurrentPdf();
   currentPdf = {
@@ -567,9 +718,15 @@ function showPdfModal({ blob, dataUrl, file, filename, registration }) {
   };
 
   const details = document.querySelector("#pdfModalDetails");
+  const messageButton = document.querySelector("#messagePdfGuest");
   details.textContent = `${registration.fullName} - ${registration.quantity || 0} tickets - ${formatMoney(
-    registration.total
+    adminRegistrationTotal(registration)
   )}`;
+  if (messageButton) {
+    const hasPhone = Boolean(normalizedWhatsAppPhone(registration.phone));
+    messageButton.disabled = !hasPhone;
+    messageButton.textContent = hasPhone ? "WhatsApp customer" : "No WhatsApp phone";
+  }
   document.querySelector("#pdfModal").hidden = false;
 }
 
@@ -608,13 +765,16 @@ async function shareCurrentPdf() {
 function messagePdfGuest() {
   if (!currentPdf) return;
   const phone = normalizedWhatsAppPhone(currentPdf.registration.phone);
-  if (!phone) return;
-  window.open(
-    `https://wa.me/${phone}?text=${encodeURIComponent(
-      "Nashama Arena PDF tickets are ready. Please attach/share the generated PDF tickets in this chat."
-    )}`,
-    "_blank"
-  );
+  if (!phone) {
+    showAdminToast("This registration has no phone number for WhatsApp.", "error");
+    return;
+  }
+  const message = [
+    `Hi ${currentPdf.registration.fullName || ""}, your Nashama Arena PDF tickets are ready.`,
+    `Confirmation: ${currentPdf.registration.confirmation || "-"}`,
+    "Please check the attached PDF ticket file.",
+  ].join("\n");
+  window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
 function formatDateDisplay(value) {
@@ -879,9 +1039,7 @@ async function generateAndSharePdf(id, button = null) {
   const releaseButton = setActionBusy(button, "Generating...");
 
   try {
-    if (!window.jspdf?.jsPDF || !window.QRCode) {
-      throw new Error("PDF tools are still loading. Please try again in a few seconds.");
-    }
+    await ensurePdfToolsReady();
     const passes = await ensureQrPasses(registration);
     if (!passes.length) throw new Error("No ticket passes were generated for this registration.");
     const pdf = await buildTicketPdf(registration, passes);
@@ -891,8 +1049,14 @@ async function generateAndSharePdf(id, button = null) {
       typeof File === "function" ? new File([blob], filename, { type: "application/pdf" }) : null;
     const dataUrl = await blobToDataUrl(blob);
     showPdfModal({ blob, dataUrl, file, filename, registration });
+    showAdminToast("PDF ready. Open WhatsApp customer to send it directly.", "success");
   } catch (error) {
-    window.alert(error.message || "Could not generate PDF tickets.");
+    const message =
+      error.message?.includes("load") || error.message?.includes("Timed out")
+        ? "Could not load the PDF tools on this connection. Refresh Safari and try again."
+        : error.message || "Could not generate PDF tickets.";
+    showAdminToast(message, "error");
+    window.alert(message);
   } finally {
     releaseButton();
   }
@@ -1003,7 +1167,10 @@ function renderScanResult(result) {
   const scanResult = document.querySelector("#scanResult");
   if (!scanResult) return;
   scanResult.className = `scan-result scan-result--${result.result || "error"}`;
-  scanResult.textContent = scanResultText(result);
+  const message = scanResultText(result);
+  scanResult.textContent = message;
+  showAdminToast(message, result.result || "info");
+  if (result.result === "success" && navigator.vibrate) navigator.vibrate(120);
 }
 
 function normalizeManualScanCode(value) {
@@ -1303,9 +1470,19 @@ function exportCsv() {
   ];
 
   const escapeCsv = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+  const csvValue = (registration, key) => {
+    if (key === "tickets") return renderTicketText(registration);
+    if (key === "total") return adminRegistrationTotal(registration).toFixed(2);
+    if (key === "price" && registration.tickets?.length === 1) {
+      const ticket = registration.tickets[0];
+      const quantity = Number(ticket.quantity || 0);
+      return quantity > 0 ? (adminTicketLineTotal(ticket, registration) / quantity).toFixed(2) : "";
+    }
+    return registration[key];
+  };
   const csv = [
     headers.join(","),
-    ...registrations.map((registration) => headers.map((key) => escapeCsv(registration[key])).join(",")),
+    ...registrations.map((registration) => headers.map((key) => escapeCsv(csvValue(registration, key))).join(",")),
   ].join("\n");
 
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -1584,7 +1761,7 @@ function fillEventForm(event = {}) {
   document.querySelector("#eventTeamA").value = countryCodeFromEventTeam(event, "A");
   document.querySelector("#eventTeamB").value = countryCodeFromEventTeam(event, "B");
   updateEventGameFromTeams(event.game || "");
-  document.querySelector("#eventPrice").value = event.price ?? "";
+  document.querySelector("#eventPrice").value = adminTicketPriceForEvent(event) || "";
   document.querySelector("#eventImage").value = event.image || "";
   document.querySelector("#eventDescription").value = event.description || "";
   document.querySelector("#eventActive").checked = event.active !== false;
@@ -1600,7 +1777,7 @@ function eventFromForm() {
   const id =
     explicitId ||
     `${date || "event"}-${slug || "match"}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-  return {
+  const event = {
     id,
     title,
     date,
@@ -1617,6 +1794,7 @@ function eventFromForm() {
     description: document.querySelector("#eventDescription").value.trim(),
     active: document.querySelector("#eventActive").checked,
   };
+  return { ...event, price: adminTicketPriceForEvent(event) };
 }
 
 async function saveEventFromAdmin() {
@@ -1654,7 +1832,7 @@ function renderAdminEvents() {
                 <strong>${escapeHtml(event.title || event.game || "Match night")}</strong>
                 <span>${escapeHtml(event.date || "")} ${escapeHtml(event.time || "")}</span>
                 <span>${flagEmoji(event.flagA)} ${escapeHtml(event.teamA || "")} vs ${flagEmoji(event.flagB)} ${escapeHtml(event.teamB || "")}</span>
-                <span>${formatMoney(event.price || 0)} - ${event.active === false ? "Hidden" : "Active"}</span>
+                <span>${formatMoney(adminTicketPriceForEvent(event))} - ${event.active === false ? "Hidden" : "Active"}</span>
               </div>
               <button type="button" data-edit-event="${escapeHtml(event.id)}">Edit</button>
               <button type="button" data-delete-event="${escapeHtml(event.id)}" class="danger-action">Delete</button>
