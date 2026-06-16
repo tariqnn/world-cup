@@ -1619,6 +1619,7 @@ function clearGameForm() {
   });
   editingGameGroup = "";
   document.querySelector("#gameActive").checked = true;
+  document.querySelector("#gameSoldOut").checked = false;
 }
 
 function fillGameForm(game = {}) {
@@ -1630,6 +1631,7 @@ function fillGameForm(game = {}) {
   editingGameGroup = game.group || "";
   updateGameGameFromTeams(game.game || "");
   document.querySelector("#gameActive").checked = game.active !== false;
+  document.querySelector("#gameSoldOut").checked = game.soldOut === true;
 }
 
 function gameFromForm() {
@@ -1654,6 +1656,7 @@ function gameFromForm() {
     flagB: document.querySelector("#gameTeamB").value || "",
     group: editingGameGroup,
     active: document.querySelector("#gameActive").checked,
+    soldOut: document.querySelector("#gameSoldOut").checked,
   };
 }
 
@@ -1676,6 +1679,22 @@ async function saveGameFromAdmin() {
 async function deleteGame(id) {
   if (!window.confirm("Delete this game?")) return;
   await firestoreDb.collection(GAMES_COLLECTION).doc(id).delete();
+}
+
+async function toggleGameSoldOut(id) {
+  const game = adminGamesCache.find((item) => item.id === id) || activeGames().find((item) => item.id === id);
+  if (!game) return;
+  const soldOut = game.soldOut !== true;
+  const state = document.querySelector("#gameSaveState");
+  try {
+    await saveDocumentWithFallback(GAMES_COLLECTION, id, { ...game, soldOut });
+    adminGamesCache = adminGamesCache.map((item) => (item.id === id ? { ...item, soldOut } : item));
+    gamesCache = gamesCache.map((item) => (item.id === id ? { ...item, soldOut } : item));
+    renderAdminGames();
+    if (state) state.textContent = soldOut ? "Marked sold out." : "Reopened for tickets.";
+  } catch (error) {
+    if (state) state.textContent = error.message || "Could not update sold-out state.";
+  }
 }
 
 function setGameFilterOptions(selector, values, allLabel, selectedValue) {
@@ -1706,6 +1725,7 @@ function filteredAdminGames(games) {
     const matchesStatus =
       gameFilters.status === "all" ||
       (gameFilters.status === "active" && game.active !== false) ||
+      (gameFilters.status === "sold-out" && game.soldOut === true) ||
       (gameFilters.status === "hidden" && game.active === false);
     return matchesSearch && matchesDate && matchesGroup && matchesStatus;
   });
@@ -1730,14 +1750,19 @@ function renderAdminGames() {
     ? visibleGames
         .map(
           (game) => `
-            <article class="admin-event-row">
+            <article class="admin-event-row admin-game-row">
               <div>
                 <strong>${flagEmoji(game.flagA)} ${escapeHtml(game.game || "Game")}</strong>
                 <span>${escapeHtml(game.date || "")} ${escapeHtml(game.time || "")}</span>
                 ${game.group ? `<span>${escapeHtml(game.group)}</span>` : ""}
                 <span>${escapeHtml(game.teamA || "")} vs ${escapeHtml(game.teamB || "")}</span>
-                <span>${game.active === false ? "Hidden" : "Active"}</span>
+                <span>${game.active === false ? "Hidden" : game.soldOut === true ? "Sold out" : "Active"}</span>
               </div>
+              <button
+                type="button"
+                data-toggle-sold-out-game="${escapeHtml(game.id)}"
+                class="${game.soldOut === true ? "" : "sold-out-action"}"
+              >${game.soldOut === true ? "Reopen" : "Sold out"}</button>
               <button type="button" data-edit-game="${escapeHtml(game.id)}">Edit</button>
               <button type="button" data-delete-game="${escapeHtml(game.id)}" class="danger-action">Delete</button>
             </article>
@@ -1747,6 +1772,9 @@ function renderAdminGames() {
     : `<p class="ticket-empty">${games.length ? "No games match these filters." : "No games yet."}</p>`;
   target.querySelectorAll("[data-edit-game]").forEach((button) => {
     button.addEventListener("click", () => fillGameForm(games.find((game) => game.id === button.dataset.editGame)));
+  });
+  target.querySelectorAll("[data-toggle-sold-out-game]").forEach((button) => {
+    button.addEventListener("click", () => toggleGameSoldOut(button.dataset.toggleSoldOutGame));
   });
   target.querySelectorAll("[data-delete-game]").forEach((button) => {
     button.addEventListener("click", () => deleteGame(button.dataset.deleteGame));

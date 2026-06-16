@@ -421,6 +421,7 @@ function getTicketCategory(event = selectedGame()) {
       price: ticketPriceForEvent(event),
       featured: true,
       event,
+      soldOut: event.soldOut === true,
     };
   }
   return {
@@ -637,6 +638,11 @@ function ticketPriceForEvent(event = {}) {
   return Number(event.price ?? defaultTicketPrice());
 }
 
+function isSoldOutGame(event = {}) {
+  const status = String(event.status || "").trim().toLowerCase();
+  return event.soldOut === true || status === "sold out" || status === "sold-out";
+}
+
 function activeGameEvents() {
   return activeGames()
     .map((game) => ({
@@ -653,8 +659,13 @@ function activeGameEvents() {
       flagB: game.flagB || "",
       price: ticketPriceForEvent(game),
       image: getSiteContent().ticketPreviewImage || "assets/match-night.jpg",
-      description: game.date ? "Match ticket available from the registration form." : "",
+      description: isSoldOutGame(game)
+        ? "This match is sold out."
+        : game.date
+          ? "Match ticket available from the registration form."
+          : "",
       active: game.active !== false,
+      soldOut: isSoldOutGame(game),
       source: "game",
     }));
 }
@@ -867,7 +878,7 @@ function renderGameSchedule() {
   }
 
   if (filters) {
-    const selectedGameCount = games.filter((game) => game.date === selectedScheduleDate).length;
+    const selectedGameCount = games.filter((game) => game.date === selectedScheduleDate && !game.soldOut).length;
     filters.innerHTML = `
       <label class="game-date-picker" for="gameDateSelect">
         <span class="game-date-picker__label">Match date</span>
@@ -907,7 +918,7 @@ function renderGameSchedule() {
   grid.innerHTML = visibleGames
     .map(
       (event) => `
-        <article class="game-card">
+        <article class="game-card${event.soldOut ? " game-card--sold-out" : ""}">
           <div class="game-card__meta">
             <span>${escapeHtml(event.group || "World Cup 2026")}</span>
             <strong>${escapeHtml(event.time || "")}</strong>
@@ -925,10 +936,15 @@ function renderGameSchedule() {
           </div>
           <div class="game-card__bottom">
             <div>
-              <span>Match ticket</span>
-              <strong>${formatMoney(event.price || getSiteContent().ticketPrice)}</strong>
+              <span>${event.soldOut ? "Status" : "Match ticket"}</span>
+              <strong>${event.soldOut ? "Sold out" : formatMoney(event.price || getSiteContent().ticketPrice)}</strong>
             </div>
-            <button class="button button--primary" type="button" data-event-buy="${escapeHtml(event.id)}">Add ticket</button>
+            <button
+              class="button ${event.soldOut ? "button--sold-out" : "button--primary"}"
+              type="button"
+              data-event-buy="${escapeHtml(event.id)}"
+              ${event.soldOut ? "disabled" : ""}
+            >${event.soldOut ? "Sold out" : "Add ticket"}</button>
           </div>
         </article>
       `
@@ -999,6 +1015,7 @@ function formatScheduleDate(value) {
 function selectEventForRegistration(eventId) {
   const event = activeEvents().find((item) => item.id === eventId);
   if (!event) return;
+  if (event.soldOut) return;
   const dateInput = document.querySelector("#eventDate");
   const gameSelect = document.querySelector("#game");
   const linkedGame =
@@ -1021,15 +1038,21 @@ function populateEventControls() {
   if (!dateInput.value && games[0]?.date) dateInput.value = games[0].date;
   const selectedGame = gameSelect.value;
   const matches = games.filter((game) => !dateInput.value || game.date === dateInput.value);
+  const availableMatches = matches.filter((game) => !isSoldOutGame(game));
   gameSelect.innerHTML = matches.length
     ? `<option value="">Select a game</option>${matches
-        .map((game) => `<option value="${game.id}">${flagEmoji(game.flagA)} ${game.game || `${game.teamA} vs ${game.teamB}`}</option>`)
+        .map(
+          (game) =>
+            `<option value="${game.id}"${isSoldOutGame(game) ? " disabled" : ""}>${flagEmoji(game.flagA)} ${
+              game.game || `${game.teamA} vs ${game.teamB}`
+            }${isSoldOutGame(game) ? " (Sold out)" : ""}</option>`
+        )
         .join("")}`
     : `<option value="">No games for this date</option>`;
-  if (matches.some((game) => game.id === selectedGame)) {
+  if (availableMatches.some((game) => game.id === selectedGame)) {
     gameSelect.value = selectedGame;
-  } else if (matches[0]) {
-    gameSelect.value = matches[0].id;
+  } else if (availableMatches[0]) {
+    gameSelect.value = availableMatches[0].id;
   }
 }
 
@@ -1196,6 +1219,7 @@ function renderTicketPicker() {
   if (!picker) return;
   const lang = getLanguage();
   const category = getTicketCategory(selectedGame());
+  const soldOut = category.soldOut === true || category.event?.soldOut === true;
 
   picker.innerHTML = `
     <div class="ticket-add">
@@ -1205,9 +1229,11 @@ function renderTicketPicker() {
       </div>
       <label>
         ${t("ticket.addQuantity", lang)}
-        <input id="ticketQuantityInput" type="number" inputmode="numeric" min="1" max="20" value="1" />
+        <input id="ticketQuantityInput" type="number" inputmode="numeric" min="1" max="20" value="1" ${soldOut ? "disabled" : ""} />
       </label>
-      <button class="button button--primary" id="addTicketButton" type="button">${t("ticket.addButton", lang)}</button>
+      <button class="button ${soldOut ? "button--sold-out" : "button--primary"}" id="addTicketButton" type="button" ${soldOut ? "disabled" : ""}>
+        ${soldOut ? "Sold out" : t("ticket.addButton", lang)}
+      </button>
     </div>
     <div class="ticket-selected" aria-live="polite">
       <strong>${t("ticket.selected", lang)}</strong>
@@ -1254,12 +1280,14 @@ function renderSelectedTickets(lang = getLanguage()) {
       const category = getCategory(categoryId);
       const event = category.event;
       const eventMeta = event ? [event.date, event.time, event.game].filter(Boolean).join(" - ") : "";
+      const soldOut = category.soldOut === true || event?.soldOut === true;
       return `
         <div class="ticket-row" data-selected-ticket="${escapeHtml(categoryId)}">
           <div>
             <strong>${localized(category.name, lang)}</strong>
             <span>${formatMoney(category.price)} · ${formatMoney(category.price * quantity)}</span>
             ${eventMeta ? `<span>${escapeHtml(eventMeta)}</span>` : ""}
+            ${soldOut ? `<span class="ticket-sold-out-note">Sold out - remove this ticket</span>` : ""}
           </div>
           <input
             type="number"
@@ -1278,6 +1306,8 @@ function renderSelectedTickets(lang = getLanguage()) {
 }
 
 function addTicket(categoryId, quantity = 1) {
+  const category = getCategory(categoryId);
+  if (category.soldOut === true || category.event?.soldOut === true) return;
   selectedTickets[categoryId] = Math.min(20, Number(selectedTickets[categoryId] || 0) + quantity);
   renderTicketPicker();
   updateTotal();
@@ -1333,6 +1363,7 @@ function getTicketSelection() {
         teamB: event?.teamB || "",
         flagA: event?.flagA || "",
         flagB: event?.flagB || "",
+        soldOut: event?.soldOut === true,
         quantity,
         price: category.price,
         total: category.price * quantity,
@@ -1358,6 +1389,9 @@ function validateRegistration(formData, ticketSelection) {
   if (!formData.gender) errors.gender = t("error.gender");
   if (!formData.eventDate && !ticketSelection.eventTickets.length) errors.eventDate = "Choose an event date.";
   if (!formData.game && !ticketSelection.eventTickets.length) errors.game = "Choose a game.";
+  if (ticketSelection.eventTickets.some((ticket) => ticket.soldOut)) {
+    errors.tickets = "One selected game is sold out. Remove it before submitting.";
+  }
   if (!ticketSelection.totalQuantity || ticketSelection.totalQuantity < 1) errors.tickets = t("error.tickets");
   if (ticketSelection.totalQuantity > 20) errors.tickets = t("error.maxTickets");
   return errors;

@@ -129,6 +129,7 @@
           <label>Team B<select id="gameTeamB"></select></label>
           <input id="gameFlagB" type="hidden" />
           <label class="checkbox-row"><input id="gameActive" type="checkbox" checked /> Show on main website</label>
+          <label class="checkbox-row"><input id="gameSoldOut" type="checkbox" /> Sold out</label>
         </div>
         <p class="admin-save-state" id="gameSaveState"></p>
         <div class="filters admin-game-filters" aria-label="Game filters">
@@ -153,6 +154,7 @@
             <select id="gameAdminStatusFilter">
               <option value="all">All games</option>
               <option value="active">Visible</option>
+              <option value="sold-out">Sold out</option>
               <option value="hidden">Hidden</option>
             </select>
           </label>
