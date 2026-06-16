@@ -622,7 +622,9 @@ function activePublicEvents() {
 
 function isJordanGame(event = {}) {
   const flags = [event.flagA, event.flagB].map((flag) => String(flag || "").trim().toUpperCase());
-  const teams = [event.teamA, event.teamB, event.game, event.title].join(" ").toLowerCase();
+  const teams = [event.teamA, event.teamB, event.game, event.title, event.categoryName, event.name?.en, event.name?.ar]
+    .join(" ")
+    .toLowerCase();
   return flags.includes("JO") || /\bjordan\b/.test(teams);
 }
 
@@ -1033,7 +1035,8 @@ function populateEventControls() {
 
 function selectedGame() {
   const id = document.querySelector("#game")?.value || "";
-  return activeGames().find((game) => game.id === id) || null;
+  if (!id) return null;
+  return activeGameEvents().find((event) => event.gameId === id || event.id === id) || null;
 }
 
 async function initContentData() {
@@ -1252,11 +1255,11 @@ function renderSelectedTickets(lang = getLanguage()) {
       const event = category.event;
       const eventMeta = event ? [event.date, event.time, event.game].filter(Boolean).join(" - ") : "";
       return `
-        <div class="ticket-row" data-selected-ticket="${category.id}">
+        <div class="ticket-row" data-selected-ticket="${escapeHtml(categoryId)}">
           <div>
             <strong>${localized(category.name, lang)}</strong>
             <span>${formatMoney(category.price)} · ${formatMoney(category.price * quantity)}</span>
-            ${eventMeta ? `<span>${eventMeta}</span>` : ""}
+            ${eventMeta ? `<span>${escapeHtml(eventMeta)}</span>` : ""}
           </div>
           <input
             type="number"
@@ -1264,10 +1267,10 @@ function renderSelectedTickets(lang = getLanguage()) {
             min="1"
             max="20"
             value="${quantity}"
-            data-selected-quantity="${category.id}"
+            data-selected-quantity="${escapeHtml(categoryId)}"
             aria-label="${localized(category.name, lang)} tickets"
           />
-          <button type="button" data-remove-ticket="${category.id}">${t("ticket.remove", lang)}</button>
+          <button type="button" data-remove-ticket="${escapeHtml(categoryId)}">${t("ticket.remove", lang)}</button>
         </div>
       `;
     })
@@ -1470,11 +1473,13 @@ function initRegistrationPage() {
 
   renderTicketPicker();
   document.querySelector("#eventDate")?.addEventListener("change", () => {
+    selectedTickets = {};
     populateEventControls();
     renderTicketPicker();
     updateTotal();
   });
   document.querySelector("#game")?.addEventListener("change", () => {
+    selectedTickets = {};
     renderTicketPicker();
     updateTotal();
   });

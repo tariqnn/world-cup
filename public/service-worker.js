@@ -1,4 +1,4 @@
-const CACHE_NAME = "nashama-registration-v14";
+const CACHE_NAME = "nashama-registration-v15";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
